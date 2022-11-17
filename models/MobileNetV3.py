@@ -224,7 +224,7 @@ def _mobilenet_v3(
         if pretrained_name in pretrained_models:
             loc = pretrained_models.get(pretrained_name)
             if not os.path.isfile(loc):
-                raise FileNotFoundError(f"No model found at specified location: '{loc}'. Download models from the"
+                raise FileNotFoundError(f"No model found at specified location: '{loc}'. Download models from the "
                                         f"Github Releases of "
                                         f"https://github.com/fschmid56/EfficientAT and place "
                                         f"them in the folder /resources.")
