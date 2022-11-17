@@ -16,7 +16,7 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 
 ![Model Performance vs. Model Size](/images/model_params.png)
 
-![Model Performance vs. Computational Complexity](/images/model_params.png)
+![Model Performance vs. Computational Complexity](/images/model_macs.png)
 
 **This codebase is under construction** and will change in the following weeks. The milestones are:
 * Provide Audio Tagging models pre-trained on AudioSet **[Done]**
