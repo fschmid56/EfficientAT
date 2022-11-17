@@ -1,0 +1,4 @@
+__pycache__
+resources/*.pt
+resources/*.npy
+.idea
