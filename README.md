@@ -53,7 +53,7 @@ Loading the pre-trained models is as easy as running the following code piece:
 
 ```
 from models.MobileNetV3 import get_model
-model = get_mobilenet(width_mult=1.0, pretrained_name="mn10_as")
+model = get_model(width_mult=1.0, pretrained_name="mn10_as")
 ```
 
 The Table shows all models contained in this repository. The naming convention for our models is 
