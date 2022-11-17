@@ -21,6 +21,7 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 **This codebase is under construction** and will change in the following weeks. The milestones are:
 * Provide Audio Tagging models pre-trained on AudioSet **[Done]**
 * Show how the pre-trained models can be loaded for inference **[Done]**
+* Add pre-trained models that work on different spectrogram resolutions
 * Include Training Models on AudioSet from scratch
 * Include Fine-Tuning of AudioSet pre-trained models on downstream tasks
 * Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings
@@ -63,15 +64,31 @@ AudioSet.
 All models available are pre-trained on ImageNet [9], followed by training on AudioSet [4]. The results appear slightly better than those reported in the
 paper. We provide the best models in this repository while the paper is showing averages over multiple runs.
 
-| Model Name  | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
+| Model Name  | Config                                             | Params (Million) | MACs (Billion) | Performance (mAP) |
 |-------------|----------------------------------------------------|-------------------|-----------------|-------------------|
-| mn04_as     | width_mult=0.4                                     | 0.983             | 0.11            | .432              |
+| mn04_as     | width_mult=0.4                                     | 0.98              | 0.11            | .432              |
 | mn05_as     | width_mult=0.5                                     | 1.43              | 0.16            | .443              |
 | mn10_as     | width_mult=1.0                                     | 4.88              | 0.54            | .471              |
 | mn20_as     | width_mult=2.0                                     | 17.91             | 2.06            | .478              |
 | mn30_as     | width_mult=3.0                                     | 39.09             | 4.55            | .482              |
 | mn40_as     | width_mult=4.0                                     | 68.43             | 8.03            | .484              |
 | mn40_as_ext | width_mult=4.0,<br/>extended training (300 epochs) | 68.43             | 8.03            | .487              |
+
+The Parameter and Computational complexity (number of multiply-accumulates) is calculated using the script [complexity.py](complexity.py). Note that the number of MACs calculated with our procedure is qualitatively as it counts only the dominant operations (linear layers, convolutional layers and attention layers for Transformers). 
+
+The complexity statistics of a model can be obtained by running:
+
+```
+python complexity.py --model_name="mn10_as"
+```
+
+Which will result in the following output:
+
+```
+Model 'mn10_as' has 4.88 million parameters and inference of a single 10-seconds audio clip requires 0.54 billion multiply-accumulate operations.
+```
+
+Note that computational complexity strongly depends on the resolution of the spectrograms. Our default is 128 mel bands and a hop size of 10 ms.
 
 ## Inference
 
