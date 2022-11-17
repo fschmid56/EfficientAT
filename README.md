@@ -60,7 +60,7 @@ The Table shows all models contained in this repository. The naming convention f
 **mn_\<width_mult\>_\<dataset\>**. In this sense, *mn10_as* defines a MobileNetV3 with parameter *width_mult=1.0*, pre-trained on 
 AudioSet.
 
-The results appear slightly better than those reported in the
+All models available are pre-trained on ImageNet [9], followed by training on AudioSet [4]. The results appear slightly better than those reported in the
 paper. We provide the best models in this repository while the paper is showing averages over multiple runs.
 
 | Model Name  | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
@@ -131,7 +131,8 @@ labeling, and aggregation,” IEEE ACM Trans. Audio Speech Lang. Process., 2021.
 [8] Andrew Howard, Ruoming Pang, Hartwig Adam, Quoc V. Le, Mark Sandler, Bo Chen, Weijun Wang, Liang-Chieh Chen,
 Mingxing Tan, Grace Chu, Vijay Vasudevan, and Yukun Zhu, “Searching for mobilenetv3,” in ICCV, 2019.
 
-
+[9] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei, “Imagenet: A large-scale hierarchical 
+image database,” in CVPR, 2009.
 
 
 
