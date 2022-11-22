@@ -63,15 +63,21 @@ AudioSet.
 All models available are pre-trained on ImageNet [9], followed by training on AudioSet [4]. The results appear slightly better than those reported in the
 paper. We provide the best models in this repository while the paper is showing averages over multiple runs.
 
-| Model Name  | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
-|-------------|----------------------------------------------------|-------------------|-----------------|-------------------|
-| mn04_as     | width_mult=0.4                                     | 0.983             | 0.11            | .432              |
-| mn05_as     | width_mult=0.5                                     | 1.43              | 0.16            | .443              |
-| mn10_as     | width_mult=1.0                                     | 4.88              | 0.54            | .471              |
-| mn20_as     | width_mult=2.0                                     | 17.91             | 2.06            | .478              |
-| mn30_as     | width_mult=3.0                                     | 39.09             | 4.55            | .482              |
-| mn40_as     | width_mult=4.0                                     | 68.43             | 8.03            | .484              |
-| mn40_as_ext | width_mult=4.0,<br/>extended training (300 epochs) | 68.43             | 8.03            | .487              |
+| Model Name       | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
+|------------------|----------------------------------------------------|-------------------|-----------------|-------------------|
+| mn04_as          | width_mult=0.4                                     | 0.983             | 0.11            | .432              |
+| mn05_as          | width_mult=0.5                                     | 1.43              | 0.16            | .443              |
+| mn10_as          | width_mult=1.0                                     | 4.88              | 0.54            | .471              |
+| mn20_as          | width_mult=2.0                                     | 17.91             | 2.06            | .478              |
+| mn30_as          | width_mult=3.0                                     | 39.09             | 4.55            | .482              |
+| mn40_as          | width_mult=4.0                                     | 68.43             | 8.03            | .484              |
+| mn40_as_ext      | width_mult=4.0,<br/>extended training (300 epochs) | 68.43             | 8.03            | .487              |
+| mn10_as_hop_15   | width_mult=1.0                                     | 4.88              | 0.36            | .463              |
+| mn10_as_hop_20   | width_mult=1.0                                     | 4.88              | 0.27            | .456              |
+| mn10_as_hop_25   | width_mult=1.0                                     | 4.88              | 0.22            | .447              |
+| mn10_as_mels_40  | width_mult=1.0                                     | 4.88              | 0.21            | .453              |
+| mn10_as_mels_64  | width_mult=1.0                                     | 4.88              | 0.27            | .461              |
+| mn10_as_mels_256 | width_mult=1.0                                     | 4.88              | 1.08            | .474              |
 
 ## Inference
 

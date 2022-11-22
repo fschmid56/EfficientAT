@@ -24,6 +24,14 @@ pretrained_models = {
     "mn30_as": os.path.join(resources, "mn30_as_mAP_482.pt"),
     "mn40_as": os.path.join(resources, "mn40_as_mAP_484.pt"),
     "mn40_as_ext": os.path.join(resources, "mn40_as_ext_mAP_487.pt"),
+    # varying hop size (time resolution)
+    "mn10_as_hop_15": os.path.join(resources, "mn10_as_hop_15_mAP_463.pt"),
+    "mn10_as_hop_20": os.path.join(resources, "mn10_as_hop_20_mAP_456.pt"),
+    "mn10_as_hop_25": os.path.join(resources, "mn10_as_hop_25_mAP_447.pt"),
+    # varying n_mels (frequency resolution)
+    "mn10_as_mels_40": os.path.join(resources, "mn10_as_mels_40_mAP_453.pt"),
+    "mn10_as_mels_64": os.path.join(resources, "mn10_as_mels_64_mAP_461.pt"),
+    "mn10_as_mels_256": os.path.join(resources, "mn10_as_mels_256_mAP_474.pt"),
 }
 
 
