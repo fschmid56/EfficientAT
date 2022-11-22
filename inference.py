@@ -5,7 +5,7 @@ import numpy as np
 from torch import autocast
 from contextlib import nullcontext
 
-from models.MobileNetV3 import get_model as get_mobilenet
+from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
 from models.preprocess import AugmentMelSTFT
 from helpers.utils import NAME_TO_WIDTH, labels
 
@@ -23,7 +23,10 @@ def audio_tagging(args):
     n_mels = args.n_mels
 
     # load pre-trained model
-    model = get_mobilenet(width_mult=NAME_TO_WIDTH[model_name], pretrained_name=model_name)
+    if len(args.ensemble) > 0:
+        model = get_ensemble_model(args.ensemble)
+    else:
+        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name)
     model.to(device)
     model.eval()
 
@@ -65,7 +68,10 @@ if __name__ == '__main__':
     parser.add_argument('--window_size', type=int, default=800)
     parser.add_argument('--hop_size', type=int, default=320)
     parser.add_argument('--n_mels', type=int, default=128)
+
+    # overwrite 'model_name' by 'ensemble_model' to evaluate an ensemble
+    parser.add_argument('--ensemble', nargs='+', default=[])
+
     args = parser.parse_args()
 
     audio_tagging(args)
-

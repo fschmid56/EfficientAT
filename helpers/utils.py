@@ -1,18 +1,13 @@
-NAME_TO_WIDTH = {
-    'mn04_as': 0.4,
-    'mn05_as': 0.5,
-    'mn10_as': 1.0,
-    'mn10_as_mels_40': 1.0,
-    'mn10_as_mels_64': 1.0,
-    'mn10_as_mels_256': 1.0,
-    'mn10_as_hop_15': 1.0,
-    'mn10_as_hop_20': 1.0,
-    'mn10_as_hop_25': 1.0,
-    'mn20_as': 2.0,
-    'mn30_as': 3.0,
-    'mn40_as': 4.0,
-    'mn40_as_ext': 4.0
-}
+def NAME_TO_WIDTH(name):
+    map = {
+        'mn04': 0.4,
+        'mn05': 0.5,
+        'mn10': 1.0,
+        'mn20': 2.0,
+        'mn30': 3.0,
+        'mn40': 4.0
+    }
+    return map[name[:4]]
 
 
 import csv

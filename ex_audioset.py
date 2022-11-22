@@ -8,7 +8,7 @@ from sklearn import metrics
 from contextlib import nullcontext
 
 from datasets.audioset import get_test_set, get_training_set
-from models.MobileNetV3 import get_model as get_mobilenet
+from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH
@@ -23,11 +23,14 @@ def train(args):
 
 
 def evaluate(args):
-    model_name = args.model
+    model_name = args.model_name
     device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
 
     # load pre-trained model
-    model = get_mobilenet(width_mult=NAME_TO_WIDTH[model_name], pretrained_name=model_name)
+    if len(args.ensemble) > 0:
+        model = get_ensemble_model(args.ensemble)
+    else:
+        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name)
     model.to(device)
     model.eval()
 
@@ -40,7 +43,7 @@ def evaluate(args):
     dl = DataLoader(dataset=get_test_set(),
                     worker_init_fn=worker_init_fn,
                     num_workers=12,
-                    batch_size=64)
+                    batch_size=args.batch_size)
 
     print(f"Running AudioSet evaluation for model '{model_name}' on device '{device}'")
     targets = []
@@ -73,7 +76,7 @@ def evaluate(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example of parser. ')
-    parser.add_argument('--model', type=str, default='mn10_as')
+    parser.add_argument('--model_name', type=str, default='mn10_as')
     parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--cuda', action='store_true', default=False)
 
@@ -82,6 +85,11 @@ if __name__ == '__main__':
     parser.add_argument('--window_size', type=int, default=800)
     parser.add_argument('--hop_size', type=int, default=320)
     parser.add_argument('--n_mels', type=int, default=128)
+
+    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--ensemble', nargs='+', default=[])
+
+    # overwrite 'model_name' by 'ensemble' to evaluate an ensemble
     args = parser.parse_args()
     if args.train:
         train(args)

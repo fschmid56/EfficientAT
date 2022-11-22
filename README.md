@@ -21,7 +21,8 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 **This codebase is under construction** and will change in the following weeks. The milestones are:
 * Provide Audio Tagging models pre-trained on AudioSet **[Done]**
 * Show how the pre-trained models can be loaded for inference **[Done]**
-* Add pre-trained models that work on different spectrogram resolutions
+* Add pre-trained models that work on different spectrogram resolutions **[Done]**
+* Add an easy way to ensemble models **[Done]**
 * Include Training Models on AudioSet from scratch
 * Include Fine-Tuning of AudioSet pre-trained models on downstream tasks
 * Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings
@@ -61,7 +62,7 @@ The Table shows all models contained in this repository. The naming convention f
 **mn_\<width_mult\>_\<dataset\>**. In this sense, *mn10_as* defines a MobileNetV3 with parameter *width_mult=1.0*, pre-trained on 
 AudioSet.
 
-All models available are pre-trained on ImageNet [9], followed by training on AudioSet [4]. The results appear slightly better than those reported in the
+All models available are pre-trained on ImageNet [9] by default (otherwise denoted as 'no_im_pre'), followed by training on AudioSet [4]. The results appear slightly better than those reported in the
 paper. We provide the best models in this repository while the paper is showing averages over multiple runs.
 
 | Model Name       | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
@@ -73,12 +74,17 @@ paper. We provide the best models in this repository while the paper is showing 
 | mn30_as          | width_mult=3.0                                     | 39.09             | 4.55            | .482              |
 | mn40_as          | width_mult=4.0                                     | 68.43             | 8.03            | .484              |
 | mn40_as_ext      | width_mult=4.0,<br/>extended training (300 epochs) | 68.43             | 8.03            | .487              |
+| mn40_as_no_im_pre      | width_mult=4.0, no ImageNet pre-training           | 68.43             | 8.03            | .483              |
 | mn10_as_hop_15   | width_mult=1.0                                     | 4.88              | 0.36            | .463              |
 | mn10_as_hop_20   | width_mult=1.0                                     | 4.88              | 0.27            | .456              |
 | mn10_as_hop_25   | width_mult=1.0                                     | 4.88              | 0.22            | .447              |
 | mn10_as_mels_40  | width_mult=1.0                                     | 4.88              | 0.21            | .453              |
 | mn10_as_mels_64  | width_mult=1.0                                     | 4.88              | 0.27            | .461              |
 | mn10_as_mels_256 | width_mult=1.0                                     | 4.88              | 1.08            | .474              |
+| Ensemble         | width_mult=4.0, 9 Models                           | 615.87            | 72.27           | .498              |
+
+Ensemble denotes an ensemble of 9 different mn40 models (3x mn40_as,
+3x mn40_as_ext, 3x mn40_as_no_im_pre). 
 
 The Parameter and Computational complexity (number of multiply-accumulates) is calculated using the script [complexity.py](complexity.py). Note that the number of MACs calculated with our procedure is qualitatively as it counts only the dominant operations (linear layers, convolutional layers and attention layers for Transformers). 
 
@@ -123,6 +129,13 @@ Music: 0.026
 Train wheels squealing: 0.021
 ********************************************************
 ```
+
+You can also use an ensemble for perform inference, e.g.:
+
+```
+python inference.py --ensemble mn40_as_ext mn40_as mn40_as_no_im_pre --cuda --audio_path=resources/metro_station-paris.wav
+```
+
 
 **Important:** All models are trained with half precision (float16). If you run float32 inference on cpu,
 you might notice a slight performance degradation.

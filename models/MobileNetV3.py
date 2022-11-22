@@ -9,6 +9,7 @@ from torchvision.ops.misc import ConvNormActivation
 from models.utils import cnn_out_size
 from models.block_types import InvertedResidualConfig, InvertedResidual
 from models.attention_pooling import MultiHeadAttentionPooling
+from helpers.utils import NAME_TO_WIDTH
 
 
 # Adapted version of MobileNetV3 pytorch implementation
@@ -23,7 +24,14 @@ pretrained_models = {
     "mn20_as": os.path.join(resources, "mn20_as_mAP_478.pt"),
     "mn30_as": os.path.join(resources, "mn30_as_mAP_482.pt"),
     "mn40_as": os.path.join(resources, "mn40_as_mAP_484.pt"),
+    "mn40_as(2)": os.path.join(resources, "mn40_as_mAP_483.pt"),
+    "mn40_as(3)": os.path.join(resources, "mn40_as_mAP_483(2).pt"),
+    "mn40_as_no_im_pre": os.path.join(resources, "mn40_as_no_im_pre_mAP_483.pt"),
+    "mn40_as_no_im_pre(2)": os.path.join(resources, "mn40_as_no_im_pre_mAP_483(2).pt"),
+    "mn40_as_no_im_pre(3)": os.path.join(resources, "mn40_as_no_im_pre_mAP_482.pt"),
     "mn40_as_ext": os.path.join(resources, "mn40_as_ext_mAP_487.pt"),
+    "mn40_as_ext(2)": os.path.join(resources, "mn40_as_ext_mAP_486.pt"),
+    "mn40_as_ext(3)": os.path.join(resources, "mn40_as_ext_mAP_485.pt"),
     # varying hop size (time resolution)
     "mn10_as_hop_15": os.path.join(resources, "mn10_as_hop_15_mAP_463.pt"),
     "mn10_as_hop_20": os.path.join(resources, "mn10_as_hop_20_mAP_456.pt"),
@@ -294,3 +302,25 @@ def get_model(num_classes: int = 527, pretrained_name: str = None, width_mult: f
                      )
     print(m)
     return m
+
+
+class EnsemblerModel(nn.Module):
+    def __init__(self, model_names):
+        super(EnsemblerModel, self).__init__()
+        self.models = nn.ModuleList([get_model(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name)
+                                     for model_name in model_names])
+
+    def forward(self, x):
+        all_out = None
+        for m in self.models:
+            out, _ = m(x)
+            if all_out is None:
+                all_out = out
+            else:
+                all_out = out + all_out
+        all_out = all_out / len(self.models)
+        return all_out, all_out
+
+
+def get_ensemble_model(model_names):
+    return EnsemblerModel(model_names)
