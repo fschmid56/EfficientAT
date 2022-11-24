@@ -7,7 +7,7 @@ import h5py
 import os
 
 
-# specify AudioSet location in 'base_dir'
+# specify AudioSet location in 'dataset_dir'
 # 3 files have to be located there:
 # - balanced_train_segments_mp3.hdf
 # - unbalanced_train_segments_mp3.hdf
@@ -15,10 +15,12 @@ import os
 # follow the instructions here to get these 3 files:
 # https://github.com/kkoutini/PaSST/tree/main/audioset
 
-dataset_dir = None
+# dataset_dir = None
+dataset_dir = "/share/rk7/shared/audioset_hdf5s/mp3"
 assert dataset_dir is not None, "Specify AudioSet location in variable 'dataset_dir'. " \
                                 "Check out the Readme file for further instructions. " \
                                 "https://github.com/fschmid56/EfficientAT/blob/main/README.md"
+
 dataset_config = {
     'balanced_train_hdf5': os.path.join(dataset_dir, "balanced_train_segments_mp3.hdf"),
     'unbalanced_train_hdf5': os.path.join(dataset_dir, "unbalanced_train_segments_mp3.hdf"),
