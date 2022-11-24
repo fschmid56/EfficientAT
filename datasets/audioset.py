@@ -1,25 +1,30 @@
 import io
-import os
 import av
-from torch.utils.data import Dataset as TorchDataset, ConcatDataset, DistributedSampler, WeightedRandomSampler
+from torch.utils.data import Dataset as TorchDataset, ConcatDataset, WeightedRandomSampler
 import torch
 import numpy as np
 import h5py
+import os
 
-from datasets.helpers.audiodatasets import PreprocessDataset
 
+# specify AudioSet location in 'base_dir'
+# 3 files have to be located there:
+# - balanced_train_segments_mp3.hdf
+# - unbalanced_train_segments_mp3.hdf
+# - eval_segments_mp3.hdf
+# follow the instructions here to get these 3 files:
+# https://github.com/kkoutini/PaSST/tree/main/audioset
 
-base_dir = "/share/rk7/shared/audioset_hdf5s/"
+# dataset_dir = None
+dataset_dir = "/share/rk7/shared/audioset_hdf5s/mp3"
+assert dataset_dir is not None, "Specify AudioSet location in this variable. " \
+                                "Check out the Readme file for further instructions." \
+                                "https://github.com/fschmid56/EfficientAT/blob/main/README.md"
 dataset_config = {
-    'roll': False,  # apply roll augmentation
-    'gain_augment': 0,
-    'wavemix': False,
-    'base_dir': "/share/rk7/shared/audioset_hdf5s/",  # base directory of the dataset, change it or make a link
-    'balanced_train_hdf5': base_dir + "mp3/balanced_train_segments_mp3.hdf",
-    'eval_hdf5': base_dir + "mp3/eval_segments_mp3.hdf",
-    'unbalanced_train_hdf5': base_dir + "mp3/unbalanced_train_segments_mp3.hdf",
-    'num_of_classes': 527,
-    'resample_rate': 32000
+    'balanced_train_hdf5': os.path.join(dataset_dir, "balanced_train_segments_mp3.hdf"),
+    'unbalanced_train_hdf5': os.path.join(dataset_dir, "unbalanced_train_segments_mp3.hdf"),
+    'eval_hdf5': os.path.join(dataset_dir, "eval_segments_mp3.hdf"),
+    'num_of_classes': 527
 }
 
 
@@ -97,9 +102,30 @@ class AddIndexDataset(TorchDataset):
         return len(self.ds)
 
 
+class PreprocessDataset(TorchDataset):
+    """A bases preprocessing dataset representing a preprocessing step of a Dataset preprossessed on the fly.
+
+
+    supporting integer indexing in range from 0 to len(self) exclusive.
+    """
+
+    def __init__(self, dataset, preprocessor):
+        self.dataset = dataset
+        if not callable(preprocessor):
+            print("preprocessor: ", preprocessor)
+            raise ValueError('preprocessor should be callable')
+        self.preprocessor = preprocessor
+
+    def __getitem__(self, index):
+        return self.preprocessor(self.dataset[index])
+
+    def __len__(self):
+        return len(self.dataset)
+
+
 class AudioSetDataset(TorchDataset):
     def __init__(self, hdf5_file, sample_rate=32000, resample_rate=32000, classes_num=527,
-                 clip_length=10, augment=False, in_mem=False):
+                 clip_length=10, in_mem=False, gain_augment=0):
         """
         Reads the mp3 bytes from HDF file decodes using av and returns a fixed length audio wav
         """
@@ -116,9 +142,7 @@ class AudioSetDataset(TorchDataset):
         self.dataset_file = None  # lazy init
         self.clip_length = clip_length * sample_rate
         self.classes_num = classes_num
-        self.augment = augment
-        if augment:
-            print(f"Will agument data from {hdf5_file}")
+        self.gain_augment = gain_augment
 
     def open_hdf5(self):
         self.dataset_file = h5py.File(self.hdf5_file, 'r')
@@ -134,9 +158,7 @@ class AudioSetDataset(TorchDataset):
     def __getitem__(self, index):
         """Load waveform and target of an audio clip.
         Args:
-          meta: {
-            'hdf5_path': str,
-            'index_in_hdf5': int}
+          'index': int
         Returns:
           data_dict: {
             'audio_name': str,
@@ -148,8 +170,7 @@ class AudioSetDataset(TorchDataset):
 
         audio_name = self.dataset_file['audio_name'][index].decode()
         waveform = decode_mp3(self.dataset_file['mp3'][index])
-        if self.augment:
-            waveform = pydub_augment(waveform, dataset_config.get('gain_augment', 0))
+        waveform = pydub_augment(waveform, self.gain_augment)
         waveform = pad_or_truncate(waveform, self.clip_length)
         waveform = self.resample(waveform)
         target = self.dataset_file['target'][index]
@@ -174,39 +195,14 @@ class AudioSetDataset(TorchDataset):
             raise Exception('Incorrect sample rate!')
 
 
-def get_base_training_set():
-    balanced_train_hdf5 = dataset_config['balanced_train_hdf5']
-    resample_rate = dataset_config['resample_rate']
-    ds = AudioSetDataset(balanced_train_hdf5, augment=True, resample_rate=resample_rate)
-    return ds
-
-
-def get_unbalanced_training_set():
-    unbalanced_train_hdf5 = dataset_config['unbalanced_train_hdf5']
-    resample_rate = dataset_config['resample_rate']
-    ds = AudioSetDataset(unbalanced_train_hdf5, augment=True, resample_rate=resample_rate)
-    return ds
-
-
-def get_norms_dataset():
-    unbalanced_train_hdf5 = dataset_config['unbalanced_train_hdf5']
-    balanced_train_hdf5 = dataset_config['balanced_train_hdf5']
-    resample_rate = dataset_config['resample_rate']
-    ds = ConcatDataset(
-        [AudioSetDataset(balanced_train_hdf5, augment=False, resample_rate=resample_rate),
-         AudioSetDataset(unbalanced_train_hdf5, augment=False, resample_rate=resample_rate)])
-    return ds
-
-
-def get_base_full_training_set():
-    sets = [get_base_training_set(), get_unbalanced_training_set()]
-    ds = ConcatDataset(sets)
-    return ds
+def get_ft_weighted_sampler(epoch_len=100000, sampler_replace=False):
+    samples_weights = get_ft_cls_balanced_sample_weights()
+    return WeightedRandomSampler(samples_weights, num_samples=epoch_len, replacement=sampler_replace)
 
 
 def get_ft_cls_balanced_sample_weights(sample_weight_offset=100, sample_weight_sum=True):
     """
-    :return: float tenosr of shape len(full_training_set) representing the weights of each sample.
+    :return: float tensor of shape len(full_training_set) representing the weights of each sample.
     """
     # the order of balanced_train_hdf5,unbalanced_train_hdf5 is important.
     # should match get_full_training_set
@@ -230,38 +226,13 @@ def get_ft_cls_balanced_sample_weights(sample_weight_offset=100, sample_weight_s
     per_class_weights = 1000. / per_class
     all_weight = all_y * per_class_weights
     if sample_weight_sum:
-        print("\nsample_weight_sum\n")
         all_weight = all_weight.sum(dim=1)
     else:
         all_weight, _ = all_weight.max(dim=1)
     return all_weight
 
 
-def get_ft_weighted_sampler(epoch_len=100000, sampler_replace=False):
-    samples_weights = get_ft_cls_balanced_sample_weights
-    num_nodes = int(os.environ.get('num_nodes', 1))
-    ddp = int(os.environ.get('DDP', 1))
-    num_nodes = max(ddp, num_nodes)
-    print("num_nodes= ", num_nodes)
-    rank = int(os.environ.get('NODE_RANK', 0))
-    return DistributedSamplerWrapper(sampler=WeightedRandomSampler(samples_weights,
-                                                                   num_samples=epoch_len, replacement=sampler_replace),
-                                     dataset=range(epoch_len),
-                                     num_replicas=num_nodes,
-                                     rank=rank,
-                                     )
-
-
-def get_base_test_set():
-    eval_hdf5 = dataset_config['eval_hdf5']
-    resample_rate = dataset_config['resample_rate']
-    ds = AudioSetDataset(eval_hdf5, resample_rate=resample_rate)
-    return ds
-
-
 def get_roll_func(axis=1, shift=None, shift_range=50):
-    print("rolling...")
-
     def roll_func(b):
         x, i, y = b
         x = torch.as_tensor(x)
@@ -272,21 +243,33 @@ def get_roll_func(axis=1, shift=None, shift_range=50):
     return roll_func
 
 
-def get_training_set():
-    roll = dataset_config['roll']
-    wavmix = dataset_config['wavemix']
-    ds = get_base_training_set()
-    if roll:
-        ds = PreprocessDataset(ds, get_roll_func())
-    if wavmix:
-        ds = MixupDataset(ds)
+def get_base_full_training_set(resample_rate=32000, gain_augment=0):
+    sets = [get_base_training_set(resample_rate=resample_rate, gain_augment=gain_augment),
+            get_unbalanced_training_set(resample_rate=resample_rate, gain_augment=gain_augment)]
+    ds = ConcatDataset(sets)
     return ds
 
 
-def get_full_training_set(add_index=True):
-    roll = dataset_config['roll']
-    wavmix = dataset_config['wavemix']
-    ds = get_base_full_training_set()
+def get_base_training_set(resample_rate=32000, gain_augment=0):
+    balanced_train_hdf5 = dataset_config['balanced_train_hdf5']
+    ds = AudioSetDataset(balanced_train_hdf5, resample_rate=resample_rate, gain_augment=gain_augment)
+    return ds
+
+
+def get_unbalanced_training_set(resample_rate=32000, gain_augment=0):
+    unbalanced_train_hdf5 = dataset_config['unbalanced_train_hdf5']
+    ds = AudioSetDataset(unbalanced_train_hdf5, resample_rate=resample_rate, gain_augment=gain_augment)
+    return ds
+
+
+def get_base_test_set(resample_rate=32000):
+    eval_hdf5 = dataset_config['eval_hdf5']
+    ds = AudioSetDataset(eval_hdf5, resample_rate=resample_rate)
+    return ds
+
+
+def get_training_set(add_index=True, roll=False, wavmix=False, gain_augment=0, resample_rate=32000):
+    ds = get_base_training_set(resample_rate=resample_rate, gain_augment=gain_augment)
     if roll:
         ds = PreprocessDataset(ds, get_roll_func())
     if wavmix:
@@ -296,30 +279,17 @@ def get_full_training_set(add_index=True):
     return ds
 
 
-def get_test_set(add_index_test=False):
-    ds = get_base_test_set()
-    if add_index_test:
+def get_full_training_set(add_index=True, roll=False, wavmix=False, gain_augment=0, resample_rate=32000):
+    ds = get_base_full_training_set(resample_rate=resample_rate, gain_augment=gain_augment)
+    if roll:
+        ds = PreprocessDataset(ds, get_roll_func())
+    if wavmix:
+        ds = MixupDataset(ds)
+    if add_index:
         ds = AddIndexDataset(ds)
     return ds
 
 
-class DistributedSamplerWrapper(DistributedSampler):
-    def __init__(
-            self, sampler, dataset,
-            num_replicas=None,
-            rank=None,
-            shuffle: bool = True):
-        super(DistributedSamplerWrapper, self).__init__(
-            dataset, num_replicas, rank, shuffle)
-        # source: @awaelchli https://github.com/PyTorchLightning/pytorch-lightning/issues/3238
-        self.sampler = sampler
-
-    def __iter__(self):
-        if self.sampler.generator is None:
-            self.sampler.generator = torch.Generator()
-        self.sampler.generator.manual_seed(self.seed + self.epoch)
-        indices = list(self.sampler)
-        if self.epoch == 0:
-            print(f"\n DistributedSamplerWrapper :  {indices[:10]} \n\n")
-        indices = indices[self.rank:self.total_size:self.num_replicas]
-        return iter(indices)
+def get_test_set(resample_rate=32000):
+    ds = get_base_test_set(resample_rate=resample_rate)
+    return ds

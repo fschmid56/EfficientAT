@@ -18,6 +18,13 @@ from helpers.utils import NAME_TO_WIDTH
 resources = "resources"
 
 pretrained_models = {
+    # pytorch ImageNet pre-trained model
+    # own ImageNet pre-trained models will follow
+    # NOTE: for easy loading we provide the adapted state dict ready for AudioSet training (1 input channel,
+    # 527 output classes)
+    # NOTE: the classifier is just a random initialization, feature extractor (conv layers) is pre-trained
+    "mn10_im_pytorch": os.path.join(resources, "mn10_im_pytorch.pt"),
+    # Models trained on AudioSet
     "mn04_as": os.path.join(resources, "mn04_as_mAP_432.pt"),
     "mn05_as": os.path.join(resources, "mn05_as_mAP_443.pt"),
     "mn10_as": os.path.join(resources, "mn10_as_mAP_471.pt"),

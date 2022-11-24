@@ -140,6 +140,57 @@ python inference.py --ensemble mn40_as_ext mn40_as mn40_as_no_im_pre --cuda --au
 **Important:** All models are trained with half precision (float16). If you run float32 inference on cpu,
 you might notice a slight performance degradation.
 
+## Train and Evaluate on AudioSet
+
+The training and evaluation procedures are simplified as much as possible. The most difficult part is to get AudioSet[4]
+itself as it has a total size of around 1.1 TB and it must be downloaded from YouTube. Follow the instructions in 
+the [PaSST](https://github.com/kkoutini/PaSST/tree/main/audioset) repository to get AudioSet in the format we need
+to run the code in this repository. You should end up with three files:
+* ```balanced_train_segmenets_mp3.hdf```
+* ```unbalanced_train_segmenets_mp3.hdf```
+* ```eval_segmenets_mp3.hdf```
+
+Specify the folder containing the three files above in ```dataset_dir``` in the [dataset file](datasets/audioset.py).
+
+Training and evaluation on AudioSet is implemented in the file [ex_audioset.py](ex_audioset.py).
+#### Evaluation
+
+To evaluate a model on the AudioSet evaluation data, run the following command:
+
+```
+python ex_audioset.py --cuda --model_name="mn10_as"
+```
+
+Which will result in the following output:
+
+```
+Results on AudioSet test split for loaded model: mn10_as
+  mAP: 0.471
+  ROC: 0.980
+```
+
+#### Training
+
+Logging is done using [Weights & Biases](https://wandb.ai/site). Create a free account to log your experiments. During training
+the latest model will be saved to the directory [wandb](wandb).
+
+To train a model on AudioSet, you can run for example the following command:
+```
+python ex_audioset.py --cuda --train --pretrained_name=mn10_im_pytorch --batch_size=60 --max_lr=0.0004
+```
+
+Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Training-mn10_as-from-ImageNet-pre-trained-on-a-GeForce-RTX-2080-Ti--VmlldzozMDMwMTc4).
+
+To train a tiny model (```model_width=0.1```) with Squeeze-and-Excitation on the frequency dimension and a fully convolutional
+classification head, run the following:
+
+```
+python ex_audioset.py --cuda --train --batch_size=120 --model_width=0.1 --head_type=fully_convolutional --se_dims=f
+```
+
+Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Train-Tiny-Model-width-0-1---VmlldzozMDMwMjkx).
+
+
 ## References
 
 [1] Khaled Koutini, Jan Schlüter, Hamid Eghbal-zadeh, and Gerhard Widmer, 
