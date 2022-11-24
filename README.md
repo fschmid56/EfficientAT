@@ -23,7 +23,7 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 * Show how the pre-trained models can be loaded for inference **[Done]**
 * Add pre-trained models that work on different spectrogram resolutions **[Done]**
 * Add an easy way to ensemble models **[Done]**
-* Include Training Models on AudioSet from scratch
+* Include Training and Evaluating Models on AudioSet **[Done]**
 * Include Fine-Tuning of AudioSet pre-trained models on downstream tasks
 * Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings
 * Provide pre-training routine on ImageNet
@@ -181,7 +181,7 @@ python ex_audioset.py --cuda --train --pretrained_name=mn10_im_pytorch --batch_s
 
 Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Training-mn10_as-from-ImageNet-pre-trained-on-a-GeForce-RTX-2080-Ti--VmlldzozMDMwMTc4).
 
-To train a tiny model (```model_width=0.1```) with Squeeze-and-Excitation on the frequency dimension and a fully convolutional
+To train a tiny model (```model_width=0.1```) with Squeeze-and-Excitation [10] on the frequency dimension and a fully convolutional
 classification head, run the following:
 
 ```
@@ -220,6 +220,8 @@ Mingxing Tan, Grace Chu, Vijay Vasudevan, and Yukun Zhu, “Searching for mobile
 
 [9] Jia Deng, Wei Dong, Richard Socher, Li-Jia Li, Kai Li, and Li Fei-Fei, “Imagenet: A large-scale hierarchical 
 image database,” in CVPR, 2009.
+
+[10] Jie Hu, Li Shen, and Gang Sun, “Squeeze-and-excitation networks,” in CVPR, 2018.
 
 
 
