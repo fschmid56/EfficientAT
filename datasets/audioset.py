@@ -15,8 +15,7 @@ import os
 # follow the instructions here to get these 3 files:
 # https://github.com/kkoutini/PaSST/tree/main/audioset
 
-# dataset_dir = None
-dataset_dir = "/share/rk7/shared/audioset_hdf5s/mp3"
+dataset_dir = None
 assert dataset_dir is not None, "Specify AudioSet location in variable 'dataset_dir'. " \
                                 "Check out the Readme file for further instructions. " \
                                 "https://github.com/fschmid56/EfficientAT/blob/main/README.md"

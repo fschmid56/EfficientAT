@@ -162,15 +162,15 @@ def train(args):
         # evaluate
         mAP, ROC, val_loss = _test(model, mel, eval_dl, device)
 
-        # log train statistics
+        # log train and validation statistics
         wandb.log({"train_loss": np.mean(train_stats['train_loss']),
                    "label_loss": np.mean(train_stats['label_loss']),
                    "distillation_loss": np.mean(train_stats['distillation_loss']),
-                   "learning_rate": scheduler.get_last_lr()[0]
+                   "learning_rate": scheduler.get_last_lr()[0],
+                   "mAP": mAP,
+                   "ROC": ROC,
+                   "val_loss": val_loss
                    })
-
-        # log validation statistics
-        wandb.log({"mAP": mAP, "ROC": ROC, "val_loss": val_loss})
 
         # remove previous model (we try to not flood your hard disk) and save latest model
         if name is not None:
