@@ -28,7 +28,8 @@ def train(args):
         project="EfficientAudioTagging",
         notes="Training efficient audio tagging models on AudioSet using Knowledge Distillation.",
         tags=["AudioSet", "Audio Tagging", "Knowledge Disitillation"],
-        config=args
+        config=args,
+        name=args.experiment_name
     )
 
     device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
@@ -61,8 +62,7 @@ def train(args):
                     sampler=get_ft_weighted_sampler(args.epoch_len),  # sampler important to balance classes
                     worker_init_fn=worker_init_fn,
                     num_workers=args.num_workers,
-                    batch_size=args.batch_size,
-                    shuffle=True)
+                    batch_size=args.batch_size)
 
     # evaluation loader
     eval_dl = DataLoader(dataset=get_test_set(resample_rate=args.resample_rate),
@@ -276,6 +276,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example of parser. ')
 
     # general
+    parser.add_argument('--experiment_name', type=str, default="AudioSet")
     parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--cuda', action='store_true', default=False)
     parser.add_argument('--batch_size', type=int, default=120)
