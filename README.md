@@ -182,13 +182,32 @@ python ex_audioset.py --cuda --train --pretrained_name=mn10_im_pytorch --batch_s
 Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Training-mn10_as-from-ImageNet-pre-trained-on-a-GeForce-RTX-2080-Ti--VmlldzozMDMwMTc4).
 
 To train a tiny model (```model_width=0.1```) with Squeeze-and-Excitation [10] on the frequency dimension and a fully convolutional
-classification head, run the following:
+classification head, run the following command:
 
 ```
 python ex_audioset.py --cuda --train --batch_size=120 --model_width=0.1 --head_type=fully_convolutional --se_dims=f
 ```
 
 Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Train-Tiny-Model-width-0-1---VmlldzozMDMwMjkx).
+
+## Fine-tuning for Acoustic Scene Classification
+
+Download the dataset *TAU Urban Acoustic Scenes 2020 Mobile, Development dataset* from this [link](https://zenodo.org/record/3819968#.Y4jWjxso9GE).
+Extract all files, such that you have a directory with the following content:
+* *audio/* (contains all .wav files)
+* *meta.csv* (contains filenames and meta data)
+* *evaluation_setup/* specifies data split
+
+Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/dcase20.py).
+
+To fine-tune a pre-trained model for acoustic scene classification run the following command:
+
+```
+python ex_dcase20.py --cuda --pretrained_name=mn10_as --cache_path=<directory>
+```
+
+The cache path is required to store the resampled waveforms and avoid a bottleneck.
+
 
 
 ## References

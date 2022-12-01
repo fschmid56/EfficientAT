@@ -6,6 +6,7 @@ import numpy as np
 import h5py
 import os
 
+from datasets.helpers.audiodatasets import PreprocessDataset, get_roll_func
 
 # specify AudioSet location in 'dataset_dir'
 # 3 files have to be located there:
@@ -100,27 +101,6 @@ class AddIndexDataset(TorchDataset):
 
     def __len__(self):
         return len(self.ds)
-
-
-class PreprocessDataset(TorchDataset):
-    """A bases preprocessing dataset representing a preprocessing step of a Dataset preprossessed on the fly.
-
-
-    supporting integer indexing in range from 0 to len(self) exclusive.
-    """
-
-    def __init__(self, dataset, preprocessor):
-        self.dataset = dataset
-        if not callable(preprocessor):
-            print("preprocessor: ", preprocessor)
-            raise ValueError('preprocessor should be callable')
-        self.preprocessor = preprocessor
-
-    def __getitem__(self, index):
-        return self.preprocessor(self.dataset[index])
-
-    def __len__(self):
-        return len(self.dataset)
 
 
 class AudioSetDataset(TorchDataset):
@@ -230,17 +210,6 @@ def get_ft_cls_balanced_sample_weights(sample_weight_offset=100, sample_weight_s
     else:
         all_weight, _ = all_weight.max(dim=1)
     return all_weight
-
-
-def get_roll_func(axis=1, shift=None, shift_range=50):
-    def roll_func(b):
-        x, i, y = b
-        x = torch.as_tensor(x)
-        sf = shift
-        if shift is None:
-            sf = int(np.random.random_integers(-shift_range, shift_range))
-        return x.roll(sf, axis), i, y
-    return roll_func
 
 
 def get_base_full_training_set(resample_rate=32000, gain_augment=0):

@@ -61,7 +61,8 @@ def train(args):
                     sampler=get_ft_weighted_sampler(args.epoch_len),  # sampler important to balance classes
                     worker_init_fn=worker_init_fn,
                     num_workers=args.num_workers,
-                    batch_size=args.batch_size)
+                    batch_size=args.batch_size,
+                    shuffle=True)
 
     # evaluation loader
     eval_dl = DataLoader(dataset=get_test_set(resample_rate=args.resample_rate),
@@ -70,7 +71,7 @@ def train(args):
                          batch_size=args.batch_size)
 
     # optimizer & scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr, weight_decay=args.weight_decay)
     # phases of lr schedule: exponential increase, constant lr, linear decrease, fine-tune
     schedule_lambda = \
         exp_warmup_linear_down(args.warm_up_len, args.ramp_down_len, args.ramp_down_start, args.last_lr_value)
@@ -296,6 +297,7 @@ if __name__ == '__main__':
     parser.add_argument('--roll', action='store_true', default=False)
     parser.add_argument('--wavmix', action='store_true', default=False)
     parser.add_argument('--gain_augment', type=int, default=0)
+    parser.add_argument('--weight_decay', type=int, default=0.0001)
     # lr schedule
     parser.add_argument('--max_lr', type=float, default=0.0008)
     parser.add_argument('--warm_up_len', type=int, default=8)

@@ -252,7 +252,20 @@ def _mobilenet_v3(
                                         f"https://github.com/fschmid56/EfficientAT and place "
                                         f"them in the folder /resources.")
             state_dict = torch.load(loc)
-            model.load_state_dict(state_dict)
+            if kwargs['num_classes'] != state_dict['classifier.5.bias'].size(0):
+                # if the number of logits is not matching the state dict,
+                # drop the corresponding pre-trained part
+                print(f"Number of classes defined: {kwargs['num_classes']}, "
+                      f"but try to load pre-trained layer with logits: {state_dict['classifier.5.bias'].size(0)}\n"
+                      "Dropping last layer.")
+                del state_dict['classifier.5.weight']
+                del state_dict['classifier.5.bias']
+            try:
+                model.load_state_dict(state_dict)
+            except RuntimeError as e:
+                print(str(e))
+                print("Loading weights pre-trained weights in a non-strict manner.")
+                model.load_state_dict(state_dict, strict=False)
         else:
             raise NotImplementedError(f"Model name '{pretrained_name}' unknown.")
     return model
