@@ -20,8 +20,8 @@ def train(args):
 
     # logging is done using wandb
     wandb.init(
-        project="EfficientAudioTagging",
-        notes="Training efficient audio tagging models on AudioSet using Knowledge Distillation.",
+        project="DCASE20",
+        notes="Fine-tune Models for Acoustic Scene Classification.",
         tags=["Tau Urban Acoustic Scenes 2020 Mobile", "Acoustic Scene Classification", "Fine-Tuning"],
         config=args,
         name=args.experiment_name
@@ -196,11 +196,6 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--num_workers', type=int, default=12)
     parser.add_argument('--cache_path', type=str, default=None)
-
-    # evaluation
-    # overwrite 'pretrained_name' by 'ensemble' to evaluate an ensemble
-    parser.add_argument('--ensemble', nargs='+', default=[])
-    parser.add_argument('--model_name', type=str, default="mn10_as")
 
     # training
     parser.add_argument('--pretrained_name', type=str, default=None)

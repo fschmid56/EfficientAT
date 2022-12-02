@@ -192,7 +192,7 @@ Checkout the results of this example configuration [here](https://wandb.ai/flori
 
 ## Fine-tuning for Acoustic Scene Classification
 
-Download the dataset *TAU Urban Acoustic Scenes 2020 Mobile, Development dataset* from this [link](https://zenodo.org/record/3819968#.Y4jWjxso9GE).
+Download the dataset *TAU Urban Acoustic Scenes 2020 Mobile, Development dataset* [11] from this [link](https://zenodo.org/record/3819968#.Y4jWjxso9GE).
 Extract all files, such that you have a directory with the following content:
 * *audio/* (contains all .wav files)
 * *meta.csv* (contains filenames and meta data)
@@ -206,7 +206,14 @@ To fine-tune a pre-trained model for acoustic scene classification run the follo
 python ex_dcase20.py --cuda --pretrained_name=mn10_as --cache_path=<directory>
 ```
 
-The cache path is required to store the resampled waveforms and avoid a bottleneck.
+Specifying a cache path is recommended to store the resampled waveforms and avoid a bottleneck. 
+
+The lightweight ```mn10_as``` can be fine-tuned on a GeForce RTX 2080 Ti
+in less than 15 minutes to around 70% accuracy, which is 90% of PaSST [1] SOTA performance (76,3% accuracy).
+``mn40_as`` achieves an accuracy of 74% with the default fine-tuning procedure. Tuning the hyperparameters in
+[ex_dcase20.py](ex_dcase20.py) might lead to higher accuracies.
+
+Checkout the results of the example run above [here](https://wandb.ai/florians/DCASE20/reports/Fine-Tuning-mn10_as-for-acoustic-scene-classification--VmlldzozMDcyNDk0?accessToken=6mflvehphxqybp64aw3n2fa6b603tw6voq60oy8bys3b5pb0fc9qgvxnxw1gqhx5).
 
 
 
@@ -241,6 +248,10 @@ Mingxing Tan, Grace Chu, Vijay Vasudevan, and Yukun Zhu, “Searching for mobile
 image database,” in CVPR, 2009.
 
 [10] Jie Hu, Li Shen, and Gang Sun, “Squeeze-and-excitation networks,” in CVPR, 2018.
+
+[11] T. Heittola, A. Mesaros, and T. Virtanen, “Acoustic scene classification in DCASE 2020 Challenge: 
+generalization across devices and low complexity solutions,” in Proceedings of the 
+Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2020), 2020.
 
 
 
