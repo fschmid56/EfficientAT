@@ -193,6 +193,10 @@ class MobileNetV3(nn.Module):
         x = self.features(x)
         features = F.adaptive_avg_pool2d(x, (1, 1)).squeeze()
         x = self.classifier(x).squeeze()
+        if features.dim() == 1 and x.dim() == 1:
+            # squeezed batch dimension
+            features = features.unsqueeze(0)
+            x = x.unsqueeze(0)
         return x, features
 
     def forward(self, x: Tensor) -> (Tensor, Tensor):

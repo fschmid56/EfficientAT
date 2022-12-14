@@ -44,7 +44,7 @@ def audio_tagging(args):
     with torch.no_grad(), autocast(device_type=device.type) if args.cuda else nullcontext():
         spec = mel(waveform)
         preds, features = model(spec.unsqueeze(0))
-    preds = torch.sigmoid(preds.float()).cpu().numpy()
+    preds = torch.sigmoid(preds.float()).squeeze().cpu().numpy()
 
     sorted_indexes = np.argsort(preds)[::-1]
 
