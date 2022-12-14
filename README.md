@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 
 
-**Pre-trained models are contained in the Github Releases and must be placed in the 'resources' folder.** 
+**Pre-trained models are available in the Github Releases and are automatically downloaded from there.** 
 Loading the pre-trained models is as easy as running the following code piece:
 
 ```

@@ -1,10 +1,10 @@
 from functools import partial
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 from torch import nn, Tensor
-import torch
 import torch.nn.functional as F
-import os
 from torchvision.ops.misc import ConvNormActivation
+from torch.hub import load_state_dict_from_url
+import urllib.parse
 
 from models.utils import cnn_out_size
 from models.block_types import InvertedResidualConfig, InvertedResidual
@@ -15,7 +15,11 @@ from helpers.utils import NAME_TO_WIDTH
 # Adapted version of MobileNetV3 pytorch implementation
 # https://github.com/pytorch/vision/blob/main/torchvision/models/mobilenetv3.py
 
-resources = "resources"
+# points to github releases
+model_url = "https://github.com/fschmid56/EfficientAT/releases/download/v0.0.1/"
+# folder to store downloaded models to
+model_dir = "resources"
+
 
 pretrained_models = {
     # pytorch ImageNet pre-trained model
@@ -23,30 +27,30 @@ pretrained_models = {
     # NOTE: for easy loading we provide the adapted state dict ready for AudioSet training (1 input channel,
     # 527 output classes)
     # NOTE: the classifier is just a random initialization, feature extractor (conv layers) is pre-trained
-    "mn10_im_pytorch": os.path.join(resources, "mn10_im_pytorch.pt"),
+    "mn10_im_pytorch": urllib.parse.urljoin(model_url, "mn10_im_pytorch.pt"),
     # Models trained on AudioSet
-    "mn04_as": os.path.join(resources, "mn04_as_mAP_432.pt"),
-    "mn05_as": os.path.join(resources, "mn05_as_mAP_443.pt"),
-    "mn10_as": os.path.join(resources, "mn10_as_mAP_471.pt"),
-    "mn20_as": os.path.join(resources, "mn20_as_mAP_478.pt"),
-    "mn30_as": os.path.join(resources, "mn30_as_mAP_482.pt"),
-    "mn40_as": os.path.join(resources, "mn40_as_mAP_484.pt"),
-    "mn40_as(2)": os.path.join(resources, "mn40_as_mAP_483.pt"),
-    "mn40_as(3)": os.path.join(resources, "mn40_as_mAP_483(2).pt"),
-    "mn40_as_no_im_pre": os.path.join(resources, "mn40_as_no_im_pre_mAP_483.pt"),
-    "mn40_as_no_im_pre(2)": os.path.join(resources, "mn40_as_no_im_pre_mAP_483(2).pt"),
-    "mn40_as_no_im_pre(3)": os.path.join(resources, "mn40_as_no_im_pre_mAP_482.pt"),
-    "mn40_as_ext": os.path.join(resources, "mn40_as_ext_mAP_487.pt"),
-    "mn40_as_ext(2)": os.path.join(resources, "mn40_as_ext_mAP_486.pt"),
-    "mn40_as_ext(3)": os.path.join(resources, "mn40_as_ext_mAP_485.pt"),
+    "mn04_as": urllib.parse.urljoin(model_url, "mn04_as_mAP_432.pt"),
+    "mn05_as": urllib.parse.urljoin(model_url, "mn05_as_mAP_443.pt"),
+    "mn10_as": urllib.parse.urljoin(model_url, "mn10_as_mAP_471.pt"),
+    "mn20_as": urllib.parse.urljoin(model_url, "mn20_as_mAP_478.pt"),
+    "mn30_as": urllib.parse.urljoin(model_url, "mn30_as_mAP_482.pt"),
+    "mn40_as": urllib.parse.urljoin(model_url, "mn40_as_mAP_484.pt"),
+    "mn40_as(2)": urllib.parse.urljoin(model_url, "mn40_as_mAP_483.pt"),
+    "mn40_as(3)": urllib.parse.urljoin(model_url, "mn40_as_mAP_483(2).pt"),
+    "mn40_as_no_im_pre": urllib.parse.urljoin(model_url, "mn40_as_no_im_pre_mAP_483.pt"),
+    "mn40_as_no_im_pre(2)": urllib.parse.urljoin(model_url, "mn40_as_no_im_pre_mAP_483(2).pt"),
+    "mn40_as_no_im_pre(3)": urllib.parse.urljoin(model_url, "mn40_as_no_im_pre_mAP_482.pt"),
+    "mn40_as_ext": urllib.parse.urljoin(model_url, "mn40_as_ext_mAP_487.pt"),
+    "mn40_as_ext(2)": urllib.parse.urljoin(model_url, "mn40_as_ext_mAP_486.pt"),
+    "mn40_as_ext(3)": urllib.parse.urljoin(model_url, "mn40_as_ext_mAP_485.pt"),
     # varying hop size (time resolution)
-    "mn10_as_hop_15": os.path.join(resources, "mn10_as_hop_15_mAP_463.pt"),
-    "mn10_as_hop_20": os.path.join(resources, "mn10_as_hop_20_mAP_456.pt"),
-    "mn10_as_hop_25": os.path.join(resources, "mn10_as_hop_25_mAP_447.pt"),
+    "mn10_as_hop_15": urllib.parse.urljoin(model_url, "mn10_as_hop_15_mAP_463.pt"),
+    "mn10_as_hop_20": urllib.parse.urljoin(model_url, "mn10_as_hop_20_mAP_456.pt"),
+    "mn10_as_hop_25": urllib.parse.urljoin(model_url, "mn10_as_hop_25_mAP_447.pt"),
     # varying n_mels (frequency resolution)
-    "mn10_as_mels_40": os.path.join(resources, "mn10_as_mels_40_mAP_453.pt"),
-    "mn10_as_mels_64": os.path.join(resources, "mn10_as_mels_64_mAP_461.pt"),
-    "mn10_as_mels_256": os.path.join(resources, "mn10_as_mels_256_mAP_474.pt"),
+    "mn10_as_mels_40": urllib.parse.urljoin(model_url, "mn10_as_mels_40_mAP_453.pt"),
+    "mn10_as_mels_64": urllib.parse.urljoin(model_url, "mn10_as_mels_64_mAP_461.pt"),
+    "mn10_as_mels_256": urllib.parse.urljoin(model_url, "mn10_as_mels_256_mAP_474.pt"),
 }
 
 
@@ -247,31 +251,26 @@ def _mobilenet_v3(
     **kwargs: Any,
 ):
     model = MobileNetV3(inverted_residual_setting, last_channel, **kwargs)
-    if pretrained_name:
-        if pretrained_name in pretrained_models:
-            loc = pretrained_models.get(pretrained_name)
-            if not os.path.isfile(loc):
-                raise FileNotFoundError(f"No model found at specified location: '{loc}'. Download models from the "
-                                        f"Github Releases of "
-                                        f"https://github.com/fschmid56/EfficientAT and place "
-                                        f"them in the folder /resources.")
-            state_dict = torch.load(loc)
-            if kwargs['num_classes'] != state_dict['classifier.5.bias'].size(0):
-                # if the number of logits is not matching the state dict,
-                # drop the corresponding pre-trained part
-                print(f"Number of classes defined: {kwargs['num_classes']}, "
-                      f"but try to load pre-trained layer with logits: {state_dict['classifier.5.bias'].size(0)}\n"
-                      "Dropping last layer.")
-                del state_dict['classifier.5.weight']
-                del state_dict['classifier.5.bias']
-            try:
-                model.load_state_dict(state_dict)
-            except RuntimeError as e:
-                print(str(e))
-                print("Loading weights pre-trained weights in a non-strict manner.")
-                model.load_state_dict(state_dict, strict=False)
-        else:
-            raise NotImplementedError(f"Model name '{pretrained_name}' unknown.")
+
+    if pretrained_name in pretrained_models:
+        model_url = pretrained_models.get(pretrained_name)
+        state_dict = load_state_dict_from_url(model_url, model_dir=model_dir, map_location="cpu")
+        if kwargs['num_classes'] != state_dict['classifier.5.bias'].size(0):
+            # if the number of logits is not matching the state dict,
+            # drop the corresponding pre-trained part
+            print(f"Number of classes defined: {kwargs['num_classes']}, "
+                  f"but try to load pre-trained layer with logits: {state_dict['classifier.5.bias'].size(0)}\n"
+                  "Dropping last layer.")
+            del state_dict['classifier.5.weight']
+            del state_dict['classifier.5.bias']
+        try:
+            model.load_state_dict(state_dict)
+        except RuntimeError as e:
+            print(str(e))
+            print("Loading weights pre-trained weights in a non-strict manner.")
+            model.load_state_dict(state_dict, strict=False)
+    elif pretrained_name:
+        raise NotImplementedError(f"Model name '{pretrained_name}' unknown.")
     return model
 
 

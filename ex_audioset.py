@@ -10,12 +10,16 @@ from sklearn import metrics
 from contextlib import nullcontext
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.hub import download_url_to_file
 
 from datasets.audioset import get_test_set, get_full_training_set, get_ft_weighted_sampler
 from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
+
+preds_url = \
+    "https://github.com/fschmid56/EfficientAT/releases/download/v0.0.1/passt_enemble_logits_mAP_495.npy"
 
 
 def train(args):
@@ -83,10 +87,8 @@ def train(args):
     # load stored teacher predictions
 
     if not os.path.isfile(args.teacher_preds):
-        raise FileNotFoundError(f"No teacher predictions found at specified location: '{args.teacher_preds}'. "
-                                f"Download models from the Github Releases of "
-                                f"https://github.com/fschmid56/EfficientAT and place "
-                                f"them in the folder /resources.")
+        # download file
+        download_url_to_file(preds_url, args.teacher_preds)
     print(f"Load teacher predictions from file {args.teacher_preds}")
     teacher_preds = np.load(args.teacher_preds)
     teacher_preds = torch.from_numpy(teacher_preds).float()
