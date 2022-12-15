@@ -140,6 +140,30 @@ python inference.py --ensemble mn40_as_ext mn40_as mn40_as_no_im_pre --cuda --au
 **Important:** All models are trained with half precision (float16). If you run float32 inference on cpu,
 you might notice a slight performance degradation.
 
+## Quality of Extracted Embeddings 
+
+To evalute the quality of extracted audio embeddings as general purpose audio representations, we run
+the [HEAR Benchmark](https://hearbenchmark.com/) on our models. The benchmark consists of 19 different tasks. In the first
+step embeddings are computed for all 19 tasks using a single model. In the second step, a shallow down-stream MLP is trained
+on the embeddings to solve the tasks. The performance of the shallow MLP on the downstream tasks is an indicator for the quality of extracted embeddings.
+
+The following plot compares the scores of PANNs (CNN14) [5], PaSST [1] and our models on each task. The score is normalized by
+the maximal performance reached by a model on the official [leaderboard](https://hearbenchmark.com/hear-leaderboard.html).
+
+![Hear Task Performances](/images/hear_individual_task_results.png)
+
+The plot shows that **mn40_as_ext** achieves a new highscore on the tasks *Gunshot Triangulation*,
+*ESC-50* and *GTZAN Genre* across all models on the [leaderboard](https://hearbenchmark.com/hear-leaderboard.html). The quality of embeddings is in general comparable
+to PaSST embeddings. **mn40_as_ext** outperforms **PANNs (CNN14)** on *11/19* tasks, and PANNs has a higher score on
+*5/19* tasks (no results are reported for PANNs on the remaining 3 tasks).
+
+The tiny model **mn04_as** (1 Mil. parameters) performs exceptionally well compared to PANNs (CNN14, 80 Mil. params) 
+achieving higher scores on *6/19* and lower scores on *9/19* tasks (one tie).
+
+Checkout the results summarized per task category for each model:
+
+![Hear Task Category Performances](/images/hear_task_categories.png)
+
 ## Train and Evaluate on AudioSet
 
 The training and evaluation procedures are simplified as much as possible. The most difficult part is to get AudioSet[4]
