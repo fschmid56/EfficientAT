@@ -72,7 +72,7 @@ class SqueezeExcitation(torch.nn.Module):
     def _scale(self, input: Tensor) -> Tensor:
         scale = torch.mean(input, self.se_dim, keepdim=True)
         shape = scale.size()
-        scale = self.fc1(scale.squeeze())
+        scale = self.fc1(scale.squeeze(2).squeeze(2))
         scale = self.activation(scale)
         scale = self.fc2(scale)
         scale = scale

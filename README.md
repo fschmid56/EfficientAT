@@ -24,8 +24,8 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 * Add pre-trained models that work on different spectrogram resolutions **[Done]**
 * Add an easy way to ensemble models **[Done]**
 * Include Training and Evaluating Models on AudioSet **[Done]**
-* Include Fine-Tuning of AudioSet pre-trained models on downstream tasks
-* Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings
+* Include Fine-Tuning of AudioSet pre-trained models on downstream tasks **[DONE]**
+* Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings **[Done]**
 * Provide pre-training routine on ImageNet
 
 The final repository should have similar capabilities as the [PANNs codebase](https://github.com/qiuqiangkong/audioset_tagging_cnn)
@@ -142,6 +142,9 @@ you might notice a slight performance degradation.
 
 ## Quality of Extracted Embeddings 
 
+The full analysis and code for the HEAR benchmark evaluation is located in the [EfficientAT_HEAR](https://github.com/fschmid56/EfficientAT_HEAR) repository.
+Below you find a short presentation of the results.
+
 To evalute the quality of extracted audio embeddings as general purpose audio representations, we run
 the [HEAR Benchmark](https://hearbenchmark.com/) on our models. The benchmark consists of 19 different tasks. In the first
 step embeddings are computed for all 19 tasks using a single model. In the second step, a shallow down-stream MLP is trained
@@ -239,6 +242,25 @@ in less than 15 minutes to around 70% accuracy, which is 90% of PaSST [1] SOTA p
 
 Checkout the results of the example run above [here](https://wandb.ai/florians/DCASE20/reports/Fine-Tuning-mn10_as-for-acoustic-scene-classification--VmlldzozMDcyNDk0?accessToken=6mflvehphxqybp64aw3n2fa6b603tw6voq60oy8bys3b5pb0fc9qgvxnxw1gqhx5).
 
+## Fine-tune on FSD50K 
+
+Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/fsd50k) repository to get the FSD50K dataset.
+
+You should end up with three files:
+
+* `FSD50K.train_mp3.hdf`
+* `FSD50K.val_mp3.hdf`
+* `FSD50K.eval_mp3.hdf`
+
+Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/fsd50k.py).
+
+To fine-tune a pre-trained model on FSD50K run the following command:
+
+```
+python ex_fsd50k.py --cuda --pretrained_name=mn10_as
+```
+
+Checkout the results of an example run [here](https://wandb.ai/florians/FSD50K/reports/Fine-tune-mn10_as-on-FSD50K--VmlldzozMTk0MzY5?accessToken=4mx9x8k2mgq424r4gjkcu0c2ipmk8irbdtz7bafvk97w1a71y5z67f7nj76l03gs).
 
 
 ## References
