@@ -17,6 +17,7 @@ from datasets.helpers.audiodatasets import PreprocessDataset, get_roll_func
 # https://github.com/kkoutini/PaSST/tree/main/fsd50k
 
 dataset_dir = None
+
 assert dataset_dir is not None, "Specify FSD50K dataset location in variable 'dataset_dir'. " \
                                 "Check out the Readme file for further instructions. " \
                                 "https://github.com/fschmid56/EfficientAT/blob/main/README.md"
@@ -167,43 +168,6 @@ class AudioSetDataset(TorchDataset):
             return waveform[0:: 4]
         else:
             raise Exception('Incorrect sample rate!')
-
-
-def get_ft_weighted_sampler(epoch_len=100000, sampler_replace=False):
-    samples_weights = get_ft_cls_balanced_sample_weights()
-    return WeightedRandomSampler(samples_weights, num_samples=epoch_len, replacement=sampler_replace)
-
-
-def get_ft_cls_balanced_sample_weights(sample_weight_offset=100, sample_weight_sum=True):
-    """
-    :return: float tensor of shape len(full_training_set) representing the weights of each sample.
-    """
-    # the order of balanced_train_hdf5,unbalanced_train_hdf5 is important.
-    # should match get_full_training_set
-    unbalanced_train_hdf5 = dataset_config['unbalanced_train_hdf5']
-    balanced_train_hdf5 = dataset_config['balanced_train_hdf5']
-    num_of_classes = dataset_config['num_of_classes']
-
-    all_y = []
-    for hdf5_file in [balanced_train_hdf5, unbalanced_train_hdf5]:
-        with h5py.File(hdf5_file, 'r') as dataset_file:
-            target = dataset_file['target']
-            target = np.unpackbits(target, axis=-1, count=num_of_classes)
-            all_y.append(target)
-    all_y = np.concatenate(all_y, axis=0)
-    all_y = torch.as_tensor(all_y)
-    per_class = all_y.long().sum(0).float().reshape(1, -1)  # frequencies per class
-
-    per_class = sample_weight_offset + per_class  # offset low freq classes
-    if sample_weight_offset > 0:
-        print(f"Warning: sample_weight_offset={sample_weight_offset} minnow={per_class.min()}")
-    per_class_weights = 1000. / per_class
-    all_weight = all_y * per_class_weights
-    if sample_weight_sum:
-        all_weight = all_weight.sum(dim=1)
-    else:
-        all_weight, _ = all_weight.max(dim=1)
-    return all_weight
 
 
 def get_base_training_set(resample_rate=32000, gain_augment=0):

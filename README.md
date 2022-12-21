@@ -4,6 +4,11 @@ In this repository, we publish pre-trained models and code described in the pape
 Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf). The paper is submitted to 
 [ICASSP 2023](https://2023.ieeeicassp.org/). 
 
+The models in this repository are especially suited to you if you are looking for audio classification models that are able to:
+* achieve **competitive performance on resource constrained platforms**
+* extract **high-quality general purpose audio representations**
+* reach **high performance on downstream tasks with scarce audio data**
+
 Large-scale Audio Tagging is dominated by Transformers (PaSST [1], AST [2], HTS-AT [3]) achieving the highest 
 single-model mean average precisions (mAP) on AudioSet [4]. However, Transformers are complex
 models and scale quadratically with respect to the sequence length, making them slow for inference.
@@ -18,13 +23,13 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 
 ![Model Performance vs. Computational Complexity](/images/model_macs.png)
 
-**This codebase is under construction** and will change in the following weeks. The milestones are:
+The next milestones are:
 * Provide Audio Tagging models pre-trained on AudioSet **[Done]**
 * Show how the pre-trained models can be loaded for inference **[Done]**
 * Add pre-trained models that work on different spectrogram resolutions **[Done]**
 * Add an easy way to ensemble models **[Done]**
 * Include Training and Evaluating Models on AudioSet **[Done]**
-* Include Fine-Tuning of AudioSet pre-trained models on downstream tasks **[DONE]**
+* Include Fine-Tuning of AudioSet pre-trained models on downstream tasks **[Done]**
 * Evaluate the quality of extracted embeddings and figure out at which layer to obtain the most powerful embeddings **[Done]**
 * Provide pre-training routine on ImageNet
 
@@ -242,7 +247,7 @@ in less than 15 minutes to around 70% accuracy, which is 90% of PaSST [1] SOTA p
 
 Checkout the results of the example run above [here](https://wandb.ai/florians/DCASE20/reports/Fine-Tuning-mn10_as-for-acoustic-scene-classification--VmlldzozMDcyNDk0?accessToken=6mflvehphxqybp64aw3n2fa6b603tw6voq60oy8bys3b5pb0fc9qgvxnxw1gqhx5).
 
-## Fine-tune on FSD50K 
+## Fine-tune on FSD50K [12]
 
 Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/fsd50k) repository to get the FSD50K dataset.
 
@@ -262,6 +267,33 @@ python ex_fsd50k.py --cuda --pretrained_name=mn10_as
 
 Checkout the results of an example run [here](https://wandb.ai/florians/FSD50K/reports/Fine-tune-mn10_as-on-FSD50K--VmlldzozMTk0MzY5?accessToken=4mx9x8k2mgq424r4gjkcu0c2ipmk8irbdtz7bafvk97w1a71y5z67f7nj76l03gs).
 
+## Fine-tune on ESC-50 [13]
+
+Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/esc50) repository to get the ESC50 dataset.
+
+You should end up with a folder `esc50` containing the two folders:
+
+* `meta`: contains `meta.csv`
+* `audio_32k`: contains all .wav files
+
+Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/esc50.py).
+
+To fine-tune a pre-trained model on ESC-50 run the following command:
+
+```
+python ex_esc50.py --cuda --pretrained_name=mn40_as_ext --fold=1
+```
+
+ESC-50 contains 2000 files and is divided into 5 cross-validation folds with 400 files each. The parameter `fold` specifies
+which fold is used for testing.
+
+Checkout the results of an example run [here](https://wandb.ai/florians/ESC50/reports/-mn40_as_ext-on-ESC50--VmlldzozMTk1NDYz?accessToken=f7s0b7h7ve6jtp8mc42exhj94pio8228udcl4ug6z4o1irrgtfeocz3b7c32exgh).
+
+While our models lag behind [PaSST](https://github.com/kkoutini/PaSST/) transformer performance on FSD50K due its large scale
+(around 50k audio samples) our models outperform PaSST on ESC-50 since the fine-tuning data is scarce (only 2000 samples).
+
+Compared to the results presented in the official [ESC-50 github repo](https://github.com/karolpiczak/ESC-50), we achieve a new SOTA accuracy of 97,45% with
+`mn40_as_ext` as pre-trained model.
 
 ## References
 
@@ -299,6 +331,6 @@ image database,” in CVPR, 2009.
 generalization across devices and low complexity solutions,” in Proceedings of the 
 Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2020), 2020.
 
+[12] Fonseca, E., Favory, X., Pons, J., Font, F., & Serra, X. (2021). Fsd50k: an open dataset of human-labeled sound events. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 30, 829-852.
 
-
-
+[13] Piczak, K. J. (2015, October). ESC: Dataset for environmental sound classification. In Proceedings of the 23rd ACM international conference on Multimedia (pp. 1015-1018).
