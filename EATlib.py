@@ -10,6 +10,33 @@ from models.preprocess import AugmentMelSTFT
 from helpers.utils import NAME_TO_WIDTH, labels
 
 class EATagger:
+    """
+        EATagger: A class for tagging audio files with acoustic event tags.
+
+        Parameters:
+
+            model_name (str, optional): name of the pre-trained model to use.
+            ensemble (str, optional): name of the ensemble of models to use.
+            device (str, optional): device to run the model on, either 'cuda' or 'cpu'.
+            sample_rate (int, optional): sample rate of the audio.
+            window_size (int, optional): window size for audio analysis in samples.
+            hop_size (int, optional): hop size for audio analysis in samples.
+            n_mels (int, optional): number of mel bands to use for audio analysis.
+
+        Methods:
+
+            tag_audio_window(audio_path, window_size=20.0, hop_length=10.0): tags an audio file with an acoustic event.
+                audio_path (str): path to the audio file
+                window_size (float, optional): size of the window in seconds
+                hop_length (float, optional): hop length in seconds
+                
+                Returns: list of dictionaries with the following keys:
+                    'start': start time of the window in seconds
+                    'end': end time of the window in seconds
+                    'tags': list of tags for the window in dictionary format
+                        'tag': name of the tag
+                        'probability': confidence of the tag
+    """
     def __init__(self,
         model_name=None,
         ensemble=None,
@@ -100,14 +127,15 @@ class EATagger:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='mn40_as_ext', help='model name')
-    parser.add_argument('--audio_path', type=str, default='audio.wav', help='path to the audio file')
+    parser.add_argument('--model', type=str, default='mn10_as', help='model name')
+    parser.add_argument('--cuda', action='store_true', default=False)
+    parser.add_argument('--audio_path', type=str, help='path to the audio file', required=True)
     parser.add_argument('--window_size', type=float, default=10.0, help='window size in seconds')
     parser.add_argument('--hop_length', type=float, default=2.5, help='hop length in seconds')
     args = parser.parse_args()
 
     # load the model
-    model = EATagger(model_name=args.model)
+    model = EATagger(model_name=args.model, device='cuda' if args.cuda else 'cpu')
 
     # tag the audio file
     tags = model.tag_audio_window(args.audio_path, window_size=args.window_size, hop_length=args.hop_length)
