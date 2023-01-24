@@ -23,6 +23,18 @@ comparison to our proposed models based on the MobileNetV3 [8] architecture.
 
 ![Model Performance vs. Computational Complexity](/images/model_macs.png)
 
+Based on a recent request, we add the memory complexity of our pre-trained models.
+We calculate the analytical peak memory (memory requirement of input + output activations) as in [14].
+We also take into account memory-efficient inference in MobileNets as described in [15].
+
+The plot below compares the trend in peak memory requirement between different CNNs. We use the file [peak_memory.py](helpers/peak_memory.py)
+to determine the peak memory. We will extend this script to incorporate:
+* size of possible residual connections
+* partially materialized expanded channel representation in inverted residual block (main building block in MobileNet)
+
+![Model Performance vs. Memory Complexity](/images/mem_comp.png)
+
+
 The next milestones are:
 * Provide Audio Tagging models pre-trained on AudioSet **[Done]**
 * Show how the pre-trained models can be loaded for inference **[Done]**
@@ -334,3 +346,7 @@ Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2
 [12] Fonseca, E., Favory, X., Pons, J., Font, F., & Serra, X. (2021). Fsd50k: an open dataset of human-labeled sound events. IEEE/ACM Transactions on Audio, Speech, and Language Processing, 30, 829-852.
 
 [13] Piczak, K. J. (2015, October). ESC: Dataset for environmental sound classification. In Proceedings of the 23rd ACM international conference on Multimedia (pp. 1015-1018).
+
+[14] Lin, J., Chen, W. M., Cai, H., Gan, C., & Han, S. (2021). Memory-efficient Patch-based Inference for Tiny Deep Learning. Advances in Neural Information Processing Systems, 34, 2346-2358.
+
+[15] Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., & Chen, L. C. (2018). Mobilenetv2: Inverted residuals and linear bottlenecks. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 4510-4520).
