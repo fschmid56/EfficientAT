@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 
 
 # analytical memory profiling as in:
@@ -14,10 +15,19 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
 
     inv_residual_elems = []
     def first_inv_residual_block_hook(self, input, output):
-        inv_residual_elems.append(global_in_elements[0] + output[0].nelement())
+        inv_residual_elems.append(global_in_elements[-1] + output[0].nelement())
+
+    res_elements = []
+    def res_hook(self, input, output):
+        res_elements.append(input[0].nelement())
+
+    def no_res_hook(self, input, output):
+        res_elements.append(0)
 
     def inv_residual_hook(self, input, output):
         mem = input[0].nelement() + output[0].nelement()
+        # add possible memory for residual connection
+        mem += res_elements[-1]
         inv_residual_elems.append(mem)
 
     def foo(net):
@@ -29,6 +39,12 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
             net.features[1].register_forward_hook(first_inv_residual_block_hook)
             children = list(net.features.children())[2:]
         elif net.__class__.__name__ == 'InvertedResidual':
+            # account for residual connection if Squeeze-and-Excitation block
+            if net.use_res_connect and len(net.block) > 3:
+                net.block[0].register_forward_hook(res_hook)
+            else:
+                net.block[0].register_forward_hook(no_res_hook)
+
             if len(net.block) > 3:
                 # contains Squeeze-and-Excitation Layer -> cannot use memory efficient inference
                 # -> must fully materialize all convs in block
@@ -61,6 +77,40 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
     print("*************Memory Complexity (kB) **************")
     for i, block_mem in enumerate(block_mems):
         print(f"block {i + 1} memory: {block_mem} kB")
+    print("**************************************************")
+    print("Analytical peak memory: ", peak_mem, " kB")
+    print("**************************************************")
+    return peak_mem
+
+
+def peak_memory_cnn(model, spec_size, bits_per_elem=16):
+    conv_activation_elems = []
+
+    def conv2d_hook(self, input, output):
+        mem = input[0].nelement() + output[0].nelement()
+        conv_activation_elems.append(mem)
+
+    def foo(net):
+        if isinstance(net, nn.Conv2d):
+            net.register_forward_hook(conv2d_hook)
+
+        for c in net.children():
+            foo(c)
+
+    # Register hook
+    foo(model)
+
+    device = next(model.parameters()).device
+    input = torch.rand(spec_size).to(device)
+    with torch.no_grad():
+        model(input)
+
+    conv_act_mems = [elem * bits_per_elem / (8 * 1000) for elem in conv_activation_elems]
+    peak_mem = max(conv_act_mems)
+
+    print("*************Memory Complexity (kB) **************")
+    for i, conv_mem in enumerate(conv_act_mems):
+        print(f"conv {i + 1} memory: {conv_mem} kB")
     print("**************************************************")
     print("Analytical peak memory: ", peak_mem, " kB")
     print("**************************************************")
