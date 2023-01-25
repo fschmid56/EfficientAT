@@ -28,8 +28,11 @@ We calculate the analytical peak memory (memory requirement of input + output ac
 We also take into account memory-efficient inference in MobileNets as described in [15].
 
 The plot below compares the trend in peak memory requirement between different CNNs. We use the file [peak_memory.py](helpers/peak_memory.py)
-to determine the peak memory. We will extend this script to incorporate:
-* size of possible residual connections
+to determine the peak memory. The memory requirement is calculated assuming a 10 seconds audio snippet and fp16 representation
+for all models.
+
+We will extend this script to incorporate:
+* size of possible residual connections for models other than our MobileNets
 * partially materialized expanded channel representation in inverted residual block (main building block in MobileNet)
 
 ![Model Performance vs. Memory Complexity](/images/mem_comp.png)

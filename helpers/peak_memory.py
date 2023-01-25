@@ -11,7 +11,7 @@ import torch.nn as nn
 def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
     global_in_elements = []
     def in_conv_hook(self, input, output):
-        global_in_elements.append(input[0].nelement())
+        global_in_elements.append(output[0].nelement())
 
     inv_residual_elems = []
     def first_inv_residual_block_hook(self, input, output):
@@ -19,15 +19,16 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
 
     res_elements = []
     def res_hook(self, input, output):
-        res_elements.append(input[0].nelement())
-
-    def no_res_hook(self, input, output):
-        res_elements.append(0)
+        res_elements.append(output[0].nelement())
 
     def inv_residual_hook(self, input, output):
         mem = input[0].nelement() + output[0].nelement()
         # add possible memory for residual connection
         mem += res_elements[-1]
+        inv_residual_elems.append(mem)
+
+    def inv_no_residual_hook(self, input, output):
+        mem = input[0].nelement() + output[0].nelement()
         inv_residual_elems.append(mem)
 
     def foo(net):
@@ -40,10 +41,7 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
             children = list(net.features.children())[2:]
         elif net.__class__.__name__ == 'InvertedResidual':
             # account for residual connection if Squeeze-and-Excitation block
-            if net.use_res_connect and len(net.block) > 3:
-                net.block[0].register_forward_hook(res_hook)
-            else:
-                net.block[0].register_forward_hook(no_res_hook)
+            net.block[0].register_forward_hook(res_hook)
 
             if len(net.block) > 3:
                 # contains Squeeze-and-Excitation Layer -> cannot use memory efficient inference
@@ -53,7 +51,7 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
             elif len(net.block) == 3:
                 # block with no Squeeze-and-Excitation
                 # can use memory efficient inference, no need to fully materialize expanded channel representation
-                net.register_forward_hook(inv_residual_hook)
+                net.register_forward_hook(inv_no_residual_hook)
             else:
                 raise ValueError("Can treat only MobileNetV3 blocks. Block 1 consists of 2 modules and following"
                                  "blocks of 3 or 4 modules. Block 1 must be treated differently.")
@@ -84,18 +82,43 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
 
 
 def peak_memory_cnn(model, spec_size, bits_per_elem=16):
+    first_conv_in_block = [True]
+    res_elems = []  # initialized with one 0 for input conv
+
+    def res_hook(self, input, output):
+        first_conv_in_block[0] = True
+        res_elems.append(output[0].nelement())
+
     conv_activation_elems = []
+
+    def conv2d_res_hook(self, input, output):
+        mem = input[0].nelement() + output[0].nelement()
+        # maybe have to add size of parallel residual path
+        if not first_conv_in_block[0]:
+            mem += res_elems[-1]
+        else:
+            first_conv_in_block[0] = False
+        conv_activation_elems.append(mem)
 
     def conv2d_hook(self, input, output):
         mem = input[0].nelement() + output[0].nelement()
         conv_activation_elems.append(mem)
 
-    def foo(net):
+    def foo(net, residual_block=False):
+        if hasattr(net, "features"):
+            net.features[0].register_forward_hook(res_hook)
+        if net.__class__.__name__ == 'InvertedResidual':
+            net.register_forward_hook(res_hook)
+            if net.use_res_connect:
+                residual_block = True
         if isinstance(net, nn.Conv2d):
-            net.register_forward_hook(conv2d_hook)
+            if residual_block:
+                net.register_forward_hook(conv2d_res_hook)
+            else:
+                net.register_forward_hook(conv2d_hook)
 
         for c in net.children():
-            foo(c)
+            foo(c, residual_block)
 
     # Register hook
     foo(model)
