@@ -11,7 +11,7 @@ import torch.nn as nn
 def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
     global_in_elements = []
     def in_conv_hook(self, input, output):
-        global_in_elements.append(output[0].nelement())
+        global_in_elements.append(input[0].nelement())
 
     inv_residual_elems = []
     def first_inv_residual_block_hook(self, input, output):
@@ -41,7 +41,7 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
             children = list(net.features.children())[2:]
         elif net.__class__.__name__ == 'InvertedResidual':
             # account for residual connection if Squeeze-and-Excitation block
-            net.block[0].register_forward_hook(res_hook)
+            net.block.register_forward_hook(res_hook)
 
             if len(net.block) > 3:
                 # contains Squeeze-and-Excitation Layer -> cannot use memory efficient inference
