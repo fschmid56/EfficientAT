@@ -31,10 +31,6 @@ The plot below compares the trend in peak memory requirement between different C
 to determine the peak memory. The memory requirement is calculated assuming a 10 seconds audio snippet and fp16 representation
 for all models.
 
-We will extend this script to incorporate:
-* size of possible residual connections for models other than our MobileNets
-* partially materialized expanded channel representation in inverted residual block (main building block in MobileNet)
-
 ![Model Performance vs. Memory Complexity](/images/mem_comp.png)
 
 

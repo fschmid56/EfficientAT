@@ -14,8 +14,15 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
         global_in_elements.append(input[0].nelement())
 
     inv_residual_elems = []
-    def first_inv_residual_block_hook(self, input, output):
-        inv_residual_elems.append(global_in_elements[-1] + output[0].nelement())
+    def first_inv_residual_block_hook(self, input, output, slice=8):
+        mem = global_in_elements[-1] + output[0].nelement()
+        # we need to only partially materialize internal block representation, we assume 8 parallel path per default
+        block_in_t = input[0].size(3)
+        block_in_f = input[0].size(2)
+        ch = input[0].size(1)
+        mem += block_in_t * block_in_f * ch / slice  # repr. before depth-wise
+        mem += block_in_t * block_in_f * ch / slice  # repr. after depth-wise
+        inv_residual_elems.append(mem)
 
     res_elements = []
     def res_hook(self, input, output):
@@ -27,8 +34,16 @@ def peak_memory_mnv3(model, spec_size, bits_per_elem=16):
         mem += res_elements[-1]
         inv_residual_elems.append(mem)
 
-    def inv_no_residual_hook(self, input, output):
+    def inv_no_residual_hook(self, input, output, slice=8):
         mem = input[0].nelement() + output[0].nelement()
+        # we need to only partially materialize internal block representation, we assume 8 parallel path per default
+        block_in_t = input[0].size(3)
+        block_in_f = input[0].size(2)
+        stride = self.block[1][0].stride[0]
+        mem += block_in_t * block_in_f * self.block[0].out_channels / slice  # repr. before depth-wise
+        next_in_f = block_in_f // stride
+        next_in_t = block_in_t // stride
+        mem += next_in_t * next_in_f * self.block[0].out_channels / slice  # repr. after depth-wise
         inv_residual_elems.append(mem)
 
     def foo(net):
