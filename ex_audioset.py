@@ -55,9 +55,10 @@ def train(args):
     pretrained_name = args.pretrained_name
     if pretrained_name:
         model = get_mobilenet(width_mult=NAME_TO_WIDTH(pretrained_name), pretrained_name=pretrained_name,
-                              head_type=args.head_type, se_dims=args.se_dims)
+                              head_type=args.head_type, se_dims=args.se_dims, strides=args.strides)
     else:
-        model = get_mobilenet(width_mult=args.model_width, head_type=args.head_type, se_dims=args.se_dims)
+        model = get_mobilenet(width_mult=args.model_width, head_type=args.head_type, se_dims=args.se_dims,
+                              strides=args.strides)
     model.to(device)
 
     # dataloader
@@ -75,7 +76,7 @@ def train(args):
                          batch_size=args.batch_size)
 
     # optimizer & scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr)
     # phases of lr schedule: exponential increase, constant lr, linear decrease, fine-tune
     schedule_lambda = \
         exp_warmup_linear_down(args.warm_up_len, args.ramp_down_len, args.ramp_down_start, args.last_lr_value)
@@ -88,6 +89,7 @@ def train(args):
 
     if not os.path.isfile(args.teacher_preds):
         # download file
+        print("Download teacher predictions...")
         download_url_to_file(preds_url, args.teacher_preds)
     print(f"Load teacher predictions from file {args.teacher_preds}")
     teacher_preds = np.load(args.teacher_preds)
@@ -292,6 +294,7 @@ if __name__ == '__main__':
     # training
     parser.add_argument('--pretrained_name', type=str, default=None)
     parser.add_argument('--model_width', type=float, default=1.0)
+    parser.add_argument('--strides', nargs=4, default=[2, 2, 2, 2], type=int)
     parser.add_argument('--head_type', type=str, default="mlp")
     parser.add_argument('--se_dims', type=str, default="c")
     parser.add_argument('--n_epochs', type=int, default=200)
@@ -300,7 +303,7 @@ if __name__ == '__main__':
     parser.add_argument('--roll', action='store_true', default=False)
     parser.add_argument('--wavmix', action='store_true', default=False)
     parser.add_argument('--gain_augment', type=int, default=0)
-    parser.add_argument('--weight_decay', type=int, default=0.0001)
+
     # lr schedule
     parser.add_argument('--max_lr', type=float, default=0.0008)
     parser.add_argument('--warm_up_len', type=int, default=8)
