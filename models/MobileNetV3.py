@@ -50,7 +50,10 @@ pretrained_models = {
     # varying n_mels (frequency resolution)
     "mn10_as_mels_40": urllib.parse.urljoin(model_url, "mn10_as_mels_40_mAP_453.pt"),
     "mn10_as_mels_64": urllib.parse.urljoin(model_url, "mn10_as_mels_64_mAP_461.pt"),
-    "mn10_as_mels_256": urllib.parse.urljoin(model_url, "mn10_as_mels_256_mAP_474.pt")
+    "mn10_as_mels_256": urllib.parse.urljoin(model_url, "mn10_as_mels_256_mAP_474.pt"),
+    # fully-convolutional head
+    "mn10_as_fc": urllib.parse.urljoin(model_url, "mn10_as_fc_mAP_465.pt"),
+    "mn10_as_fc_s2221": urllib.parse.urljoin(model_url, "mn10_as_fc_s2221_mAP_466.pt"),
 }
 
 
@@ -255,7 +258,14 @@ def _mobilenet_v3(
     if pretrained_name in pretrained_models:
         model_url = pretrained_models.get(pretrained_name)
         state_dict = load_state_dict_from_url(model_url, model_dir=model_dir, map_location="cpu")
-        if kwargs['num_classes'] != state_dict['classifier.5.bias'].size(0):
+        if kwargs['head_type'] == "mlp":
+            num_classes = state_dict['classifier.5.bias'].size(0)
+        elif kwargs['head_type'] == "fully_convolutional":
+            num_classes = state_dict['classifier.1.bias'].size(0)
+        else:
+            print("Loading weights for classifier only implemented for head types 'mlp' and 'fully_convolutional'")
+            num_classes = -1
+        if kwargs['num_classes'] != num_classes:
             # if the number of logits is not matching the state dict,
             # drop the corresponding pre-trained part
             print(f"Number of classes defined: {kwargs['num_classes']}, "

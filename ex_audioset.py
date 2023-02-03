@@ -228,7 +228,8 @@ def evaluate(args):
     if len(args.ensemble) > 0:
         model = get_ensemble_model(args.ensemble)
     else:
-        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name)
+        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
+                              head_type=args.head_type, se_dims=args.se_dims, strides=args.strides)
     model.to(device)
     model.eval()
 
