@@ -28,6 +28,15 @@ pretrained_models = {
     # 527 output classes)
     # NOTE: the classifier is just a random initialization, feature extractor (conv layers) is pre-trained
     "mn10_im_pytorch": urllib.parse.urljoin(model_url, "mn10_im_pytorch.pt"),
+    # self-trained models on ImageNet
+    "mn01_im": urllib.parse.urljoin(model_url, "mn01_im.pt"),
+    "mn02_im": urllib.parse.urljoin(model_url, "mn02_im.pt"),
+    "mn04_im": urllib.parse.urljoin(model_url, "mn04_im.pt"),
+    "mn05_im": urllib.parse.urljoin(model_url, "mn05_im.pt"),
+    "mn10_im": urllib.parse.urljoin(model_url, "mn10_im.pt"),
+    "mn20_im": urllib.parse.urljoin(model_url, "mn20_im.pt"),
+    "mn30_im": urllib.parse.urljoin(model_url, "mn30_im.pt"),
+    "mn40_im": urllib.parse.urljoin(model_url, "mn40_im.pt"),
     # Models trained on AudioSet
     "mn04_as": urllib.parse.urljoin(model_url, "mn04_as_mAP_432.pt"),
     "mn05_as": urllib.parse.urljoin(model_url, "mn05_as_mAP_443.pt"),

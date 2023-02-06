@@ -1,5 +1,7 @@
 def NAME_TO_WIDTH(name):
     map = {
+        'mn01': 0.1,
+        'mn02': 0.2,
         'mn04': 0.4,
         'mn05': 0.5,
         'mn06': 0.6,
