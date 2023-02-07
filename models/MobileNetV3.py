@@ -38,6 +38,8 @@ pretrained_models = {
     "mn30_im": urllib.parse.urljoin(model_url, "mn30_im.pt"),
     "mn40_im": urllib.parse.urljoin(model_url, "mn40_im.pt"),
     # Models trained on AudioSet
+    "mn01_as": urllib.parse.urljoin(model_url, "mn01_as_mAP_298.pt"),
+    "mn02_as": urllib.parse.urljoin(model_url, "mn02_as_mAP_378.pt"),
     "mn04_as": urllib.parse.urljoin(model_url, "mn04_as_mAP_432.pt"),
     "mn05_as": urllib.parse.urljoin(model_url, "mn05_as_mAP_443.pt"),
     "mn10_as": urllib.parse.urljoin(model_url, "mn10_as_mAP_471.pt"),
