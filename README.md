@@ -1,7 +1,7 @@
 # Efficient Large-Scale Audio Tagging
 
 In this repository, we publish pre-trained models and code described in the paper [Efficient Large-Scale Audio Tagging 
-Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf). The paper is submitted to 
+Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf). The paper is accepted to 
 [ICASSP 2023](https://2023.ieeeicassp.org/). 
 
 The models in this repository are especially suited to you if you are looking for audio classification models that are able to:
