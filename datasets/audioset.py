@@ -149,6 +149,8 @@ class AudioSetDataset(TorchDataset):
             self.open_hdf5()
 
         audio_name = self.dataset_file['audio_name'][index].decode()
+        # convert our modified filenames to official file names
+        audio_name = audio_name.replace(".mp3", "").split("Y", 1)[1]
         waveform = decode_mp3(self.dataset_file['mp3'][index])
         waveform = pydub_augment(waveform, self.gain_augment)
         waveform = pad_or_truncate(waveform, self.clip_length)

@@ -11,6 +11,7 @@ from contextlib import nullcontext
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.hub import download_url_to_file
+import pickle
 
 from datasets.audioset import get_test_set, get_full_training_set, get_ft_weighted_sampler
 from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
@@ -20,6 +21,8 @@ from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
 
 preds_url = \
     "https://github.com/fschmid56/EfficientAT/releases/download/v0.0.1/passt_enemble_logits_mAP_495.npy"
+
+fname_to_index_url = "https://github.com/fschmid56/EfficientAT/releases/download/v0.0.1/fname_to_index.pkl"
 
 
 def train(args):
@@ -50,7 +53,6 @@ def train(args):
                          fmax=args.fmax
                          )
     mel.to(device)
-
     # load prediction model
     pretrained_name = args.pretrained_name
     if pretrained_name:
@@ -97,6 +99,12 @@ def train(args):
     teacher_preds = torch.sigmoid(teacher_preds / args.temperature)
     teacher_preds.requires_grad = False
 
+    if not os.path.isfile(args.fname_to_index):
+        print("Download filename to teacher prediction index dictionary...")
+        download_url_to_file(fname_to_index_url, args.fname_to_index)
+    with open(args.fname_to_index, 'rb') as f:
+        fname_to_index = pickle.load(f)
+
     name = None
     mAP, ROC, val_loss = float('NaN'), float('NaN'), float('NaN')
 
@@ -131,7 +139,9 @@ def train(args):
 
             # distillation loss
             if args.kd_lambda > 0:
-                y_soft_teacher = teacher_preds[i]
+                # fetch the correct index in 'teacher_preds' for given filename
+                indices = torch.tensor([fname_to_index[fname] for fname in f], dtype=torch.int64)
+                y_soft_teacher = teacher_preds[indices]
                 y_soft_teacher = y_soft_teacher.to(y_hat.device).type_as(y_hat)
 
                 if args.mixup_alpha:
@@ -315,6 +325,8 @@ if __name__ == '__main__':
     # knowledge distillation
     parser.add_argument('--teacher_preds', type=str,
                         default=os.path.join("resources", "passt_enemble_logits_mAP_495.npy"))
+    parser.add_argument('--fname_to_index', type=str,
+                        default=os.path.join("resources", "fname_to_index.pkl"))
     parser.add_argument('--temperature', type=float, default=1)
     parser.add_argument('--kd_lambda', type=float, default=0.1)
 
