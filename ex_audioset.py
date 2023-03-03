@@ -140,7 +140,13 @@ def train(args):
             # distillation loss
             if args.kd_lambda > 0:
                 # fetch the correct index in 'teacher_preds' for given filename
-                indices = torch.tensor([fname_to_index[fname] for fname in f], dtype=torch.int64)
+                # insert -1 for files not in fname_to_index (proportion of files successfully downloaded from
+                # YouTube can vary for AudioSet)
+                indices = torch.tensor(
+                    [fname_to_index[fname] if fname in fname_to_index else -1 for fname in f], dtype=torch.int64
+                )
+                # get indices of files we could not find the teacher predictions for
+                unknown_indices = indices == -1
                 y_soft_teacher = teacher_preds[indices]
                 y_soft_teacher = y_soft_teacher.to(y_hat.device).type_as(y_hat)
 
@@ -149,9 +155,12 @@ def train(args):
                         distillation_loss(y_hat, y_soft_teacher).mean(dim=1) * lam.reshape(bs) + \
                         distillation_loss(y_hat, y_soft_teacher[rn_indices]).mean(dim=1) \
                         * (1. - lam.reshape(bs))
-                    soft_targets_loss = soft_targets_loss.mean()
                 else:
-                    soft_targets_loss = distillation_loss(y_hat, y_soft_teacher).mean()  # mean since reduction="none"
+                    soft_targets_loss = distillation_loss(y_hat, y_soft_teacher)
+
+                # zero out loss for samples we don't have teacher predictions for
+                soft_targets_loss[unknown_indices] = soft_targets_loss[unknown_indices] * 0
+                soft_targets_loss = soft_targets_loss.mean()
 
                 # weighting losses
                 label_loss = args.kd_lambda * label_loss
