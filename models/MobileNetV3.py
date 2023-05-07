@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 from torch import nn, Tensor
 import torch.nn.functional as F
 from torchvision.ops.misc import ConvNormActivation
@@ -209,17 +209,28 @@ class MobileNetV3(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def _forward_impl(self, x: Tensor) -> (Tensor, Tensor):
-        x = self.features(x)
+    def _forward_impl(self, x: Tensor, return_fmaps: bool = False) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, List[Tensor]]]:
+        fmaps = []
+        
+        for i, layer in enumerate(self.features):
+            x = layer(x)
+            if return_fmaps:
+                fmaps.append(x)
+        
         features = F.adaptive_avg_pool2d(x, (1, 1)).squeeze()
         x = self.classifier(x).squeeze()
+        
         if features.dim() == 1 and x.dim() == 1:
             # squeezed batch dimension
             features = features.unsqueeze(0)
             x = x.unsqueeze(0)
-        return x, features
+        
+        if return_fmaps:
+            return x, fmaps
+        else:
+            return x, features
 
-    def forward(self, x: Tensor) -> (Tensor, Tensor):
+    def forward(self, x: Tensor) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, List[Tensor]]]:
         return self._forward_impl(x)
 
 
