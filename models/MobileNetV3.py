@@ -281,11 +281,16 @@ def _mobilenet_v3(
         if kwargs['num_classes'] != num_classes:
             # if the number of logits is not matching the state dict,
             # drop the corresponding pre-trained part
+            pretrain_logits = state_dict['classifier.5.bias'].size(0) if kwargs['head_type'] == "mlp" \
+                else state_dict['classifier.1.bias'].size(0)
             print(f"Number of classes defined: {kwargs['num_classes']}, "
-                  f"but try to load pre-trained layer with logits: {state_dict['classifier.5.bias'].size(0)}\n"
+                  f"but try to load pre-trained layer with logits: {pretrain_logits}\n"
                   "Dropping last layer.")
-            del state_dict['classifier.5.weight']
-            del state_dict['classifier.5.bias']
+            if kwargs['head_type'] == "mlp":
+                del state_dict['classifier.5.weight']
+                del state_dict['classifier.5.bias']
+            else:
+                state_dict = {k: v for k, v in state_dict.items() if not k.startswith('classifier')}
         try:
             model.load_state_dict(state_dict)
         except RuntimeError as e:
