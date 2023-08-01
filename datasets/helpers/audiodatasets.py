@@ -1,6 +1,7 @@
 from torch.utils.data import Dataset
 import torch
 import numpy as np
+from functools import partial
 
 
 class PreprocessDataset(Dataset):
@@ -23,13 +24,15 @@ class PreprocessDataset(Dataset):
 
 
 def get_roll_func(axis=1, shift=None, shift_range=10000):
-    # roll waveform (over time)
-    def roll_func(b):
-        x = b[0]
-        others = b[1:]
-        x = torch.as_tensor(x)
-        sf = shift
-        if shift is None:
-            sf = int(np.random.random_integers(-shift_range, shift_range))
-        return (x.roll(sf, axis), *others)
-    return roll_func
+    return partial(roll_func, axis=axis, shift=shift, shift_range=shift_range)
+
+
+# roll waveform (over time)
+def roll_func(b, axis=1, shift=None, shift_range=10000):
+    x = b[0]
+    others = b[1:]
+    x = torch.as_tensor(x)
+    sf = shift
+    if shift is None:
+        sf = int(np.random.random_integers(-shift_range, shift_range))
+    return (x.roll(sf, axis), *others)
