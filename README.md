@@ -1,16 +1,18 @@
 # Efficient Large-Scale Audio Tagging
 
-In this repository, we publish pre-trained models and code described in the paper [Efficient Large-Scale Audio Tagging 
-Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf). The paper has been presented in 
+In this repository, we publish the pre-trained models and the code described in the papers:
+* [Efficient Large-Scale Audio Tagging Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf). The paper has been presented in 
 [ICASSP 2023](https://2023.ieeeicassp.org/) and is published in IEEE 
 ([published version](https://ieeexplore.ieee.org/abstract/document/10096110?casa_token=_FKutWF2kxIAAAAA:vtUj5_FKRHVxfWIs0nU4-GqW3jDkj6twAPaCxQrdV81AeiDcINsQU_zCK-iZZbJAHJXTRZZCkm3z)). 
+* [Dynamic Convolutional Neural Networks as Efficient Pre-trained Audio
+Models](https://arxiv.org/pdf/2310.15648.pdf). Submitted to IEEE/ACM TASLP. **Code and models will be uploaded soonish!**
 
-The models in this repository are especially suited to you if you are looking for audio classification models that are able to:
+The models in this repository are especially suited to you if you are looking for pre-trained audio pattern recognition models that are able to:
 * achieve **competitive performance on resource constrained platforms**
 * extract **high-quality general purpose audio representations**
-* reach **high performance on downstream tasks with scarce audio data**
+* reach **high performance on downstream tasks with a simple fine-tuning pipeline**
 
-Large-scale Audio Tagging is dominated by Transformers (PaSST [1], AST [2], HTS-AT [3]) achieving the highest 
+Large-scale Audio Tagging is dominated by Transformers (PaSST [1], AST [2], HTS-AT [3], BEATs [16]) achieving the highest 
 single-model mean average precisions (mAP) on AudioSet [4]. However, Transformers are complex
 models and scale quadratically with respect to the sequence length, making them slow for inference.
 CNNs scale linearly with respect to the sequence length and are easy to scale to given resource constraints. 
@@ -350,3 +352,6 @@ Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2
 [14] Lin, J., Chen, W. M., Cai, H., Gan, C., & Han, S. (2021). Memory-efficient Patch-based Inference for Tiny Deep Learning. Advances in Neural Information Processing Systems, 34, 2346-2358.
 
 [15] Sandler, M., Howard, A., Zhu, M., Zhmoginov, A., & Chen, L. C. (2018). Mobilenetv2: Inverted residuals and linear bottlenecks. In Proceedings of the IEEE conference on computer vision and pattern recognition (pp. 4510-4520).
+
+[16] S. Chen, Y. Wu, C. Wang, S. Liu, D. Tompkins, Z. Chen, W. Che, X. Yu, and F. Wei, “Beats: Audio pre-training with acoustic tokenizers,”
+in Proceedings of the International Conference on Machine Learning (ICML), ser. Proceedings of Machine Learning Research, vol. 202, 2023, pp. 5178–5193.
