@@ -164,7 +164,7 @@ you might notice a slight performance degradation.
 The full analysis and code for the HEAR benchmark evaluation is located in the [EfficientAT_HEAR](https://github.com/fschmid56/EfficientAT_HEAR) repository.
 Below you find a short presentation of the results.
 
-To evalute the quality of extracted audio embeddings as general purpose audio representations, we run
+To evaluate the quality of extracted audio embeddings as general purpose audio representations, we run
 the [HEAR Benchmark](https://hearbenchmark.com/) on our models. The benchmark consists of 19 different tasks. In the first
 step embeddings are computed for all 19 tasks using a single model. In the second step, a shallow down-stream MLP is trained
 on the embeddings to solve the tasks. The performance of the shallow MLP on the downstream tasks is an indicator for the quality of extracted embeddings.
