@@ -65,6 +65,8 @@ follows:
 pip install -r requirements.txt
 ```
 
+Also make sure you have FFmpeg <v4.4 installed.
+
 ## Pre-Trained Models
 
 
