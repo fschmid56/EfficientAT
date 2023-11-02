@@ -19,7 +19,7 @@ CNNs scale linearly with respect to the sequence length and are easy to scale to
 However, CNNs (e.g. PANNs [5], ERANN [6], PSLA [7]) have fallen short on Transformers in terms of Audio Tagging performance.
 
 **We bring together the best of both worlds by training efficient CNNs of different complexities using Knowledge Distillation 
-from Transformers**. The Figures below show the performance-complexity trade-off for existing models trained on AudioSet. The proposed MNs are described in [in this work]([Efficient Large-Scale Audio Tagging Via Transformer-To-CNN Knowledge Distillation](https://arxiv.org/pdf/2211.04772.pdf)) 
+from Transformers**. The Figures below show the performance-complexity trade-off for existing models trained on AudioSet. The proposed MNs are described in [in this work](https://arxiv.org/pdf/2211.04772.pdf)
 published at ICASSP 2023 and the DyMNs are introduced in our most recent [work](https://arxiv.org/pdf/2310.15648.pdf) submitted to TASLP.
 The plots below are created using the model profiler included in Microsoft's [DeepSpeed framework](https://www.microsoft.com/en-us/research/project/deepspeed/).
 
@@ -84,12 +84,12 @@ from models.dymn.model import get_model as get_dymn
 model = get_dymn(pretrained_name="dymn10_as")
 ```
 
-The Table shows all models contained in this repository. The naming convention for our models is 
+The Table shows a selection of models contained in this repository. The naming convention for our models is 
 **<model\>\<width_mult\>\_\<dataset\>**. In this sense, *mn10_as* defines a MobileNetV3 with parameter *width_mult=1.0*, pre-trained on 
 AudioSet. *dymn* is the prefix for a dynamic MobileNet.
 
-All models available are pre-trained on ImageNet [9] by default (otherwise denoted as 'no_im_pre'), followed by training on AudioSet [4]. The results appear slightly better than those reported in the
-paper. We provide the best models in this repository while the paper is showing averages over multiple runs.
+All models available are pre-trained on ImageNet [9] by default (otherwise denoted as 'no_im_pre'), followed by training on AudioSet [4]. Some results appear slightly better than those reported in the
+papers. We provide the best models in this repository while the paper is showing averages over multiple runs.
 
 | Model Name       | Config                                             | Params (Millions) | MACs (Billions) | Performance (mAP) |
 |------------------|----------------------------------------------------|-------------------|-----------------|-------------------|
