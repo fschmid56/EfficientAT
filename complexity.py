@@ -3,7 +3,7 @@ import torch
 
 from helpers.flop_count import count_macs, count_macs_transformer
 from helpers.peak_memory import peak_memory_mnv3, peak_memory_cnn
-from models.MobileNetV3 import get_model
+from models.mn.model import get_model
 from helpers.utils import NAME_TO_WIDTH
 from models.preprocess import AugmentMelSTFT
 

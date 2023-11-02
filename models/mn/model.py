@@ -6,9 +6,9 @@ from torchvision.ops.misc import ConvNormActivation
 from torch.hub import load_state_dict_from_url
 import urllib.parse
 
-from models.utils import cnn_out_size
-from models.block_types import InvertedResidualConfig, InvertedResidual
-from models.attention_pooling import MultiHeadAttentionPooling
+from models.mn.utils import cnn_out_size
+from models.mn.block_types import InvertedResidualConfig, InvertedResidual
+from models.mn.attention_pooling import MultiHeadAttentionPooling
 from helpers.utils import NAME_TO_WIDTH
 
 
@@ -70,7 +70,7 @@ pretrained_models = {
 }
 
 
-class MobileNetV3(nn.Module):
+class MN(nn.Module):
     def __init__(
         self,
         inverted_residual_setting: List[InvertedResidualConfig],
@@ -98,7 +98,7 @@ class MobileNetV3(nn.Module):
             in_conv_stride (int): Size of stride for first convolution
             in_channels (int): Number of input channels
         """
-        super(MobileNetV3, self).__init__()
+        super(MN, self).__init__()
 
         if not inverted_residual_setting:
             raise ValueError("The inverted_residual_setting should not be empty")
@@ -277,7 +277,7 @@ def _mobilenet_v3(
     pretrained_name: str,
     **kwargs: Any,
 ):
-    model = MobileNetV3(inverted_residual_setting, last_channel, **kwargs)
+    model = MN(inverted_residual_setting, last_channel, **kwargs)
 
     if pretrained_name in pretrained_models:
         model_url = pretrained_models.get(pretrained_name)
@@ -314,7 +314,7 @@ def _mobilenet_v3(
 
 
 def mobilenet_v3(pretrained_name: str = None, **kwargs: Any) \
-        -> MobileNetV3:
+        -> MN:
     """
     Constructs a MobileNetV3 architecture from
     "Searching for MobileNetV3" <https://arxiv.org/abs/1905.02244>".

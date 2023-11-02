@@ -9,7 +9,7 @@ from sklearn import metrics
 import torch.nn.functional as F
 
 from datasets.fsd50k import get_eval_set, get_valid_set, get_training_set
-from models.MobileNetV3 import get_model as get_mobilenet
+from models.mn.model import get_model as get_mobilenet
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup

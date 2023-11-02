@@ -5,7 +5,8 @@ import numpy as np
 from torch import autocast
 from contextlib import nullcontext
 
-from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
+from models.mn.model import get_model as get_mobilenet, get_ensemble_model
+from models.dymn.model import get_model as get_dymn
 from models.preprocess import AugmentMelSTFT
 from helpers.utils import NAME_TO_WIDTH, labels
 
@@ -26,8 +27,12 @@ def audio_tagging(args):
     if len(args.ensemble) > 0:
         model = get_ensemble_model(args.ensemble)
     else:
-        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name, strides=args.strides,
-                              head_type=args.head_type)
+        if model_name.startswith("dymn"):
+            model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
+                                  strides=args.strides)
+        else:
+            model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
+                                  strides=args.strides, head_type=args.head_type)
     model.to(device)
     model.eval()
 

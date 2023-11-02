@@ -1,6 +1,5 @@
 import argparse
-import torch
-from models.MobileNetV3 import get_model
+from models.mn.model import get_model
 from helpers.utils import NAME_TO_WIDTH
 from helpers.receptive_field import receptive_field_cnn
 

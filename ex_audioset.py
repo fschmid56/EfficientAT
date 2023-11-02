@@ -14,7 +14,8 @@ from torch.hub import download_url_to_file
 import pickle
 
 from datasets.audioset import get_test_set, get_full_training_set, get_ft_weighted_sampler
-from models.MobileNetV3 import get_model as get_mobilenet, get_ensemble_model
+from models.mn.model import get_model as get_mobilenet, get_ensemble_model
+from models.dymn.model import get_model as get_dymn
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
@@ -54,13 +55,14 @@ def train(args):
                          )
     mel.to(device)
     # load prediction model
-    pretrained_name = args.pretrained_name
-    if pretrained_name:
-        model = get_mobilenet(width_mult=NAME_TO_WIDTH(pretrained_name), pretrained_name=pretrained_name,
-                              head_type=args.head_type, se_dims=args.se_dims, strides=args.strides)
+    model_name = args.model_name
+    pretrained_name = model_name if args.pretrained else None
+    if model_name.startswith("dymn"):
+        model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=pretrained_name,
+                         strides=args.strides, pretrain_final_temp=args.pretrain_final_temp)
     else:
-        model = get_mobilenet(width_mult=args.model_width, head_type=args.head_type, se_dims=args.se_dims,
-                              strides=args.strides)
+        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=pretrained_name,
+                              strides=args.strides, head_type=args.head_type)
     model.to(device)
 
     # dataloader
@@ -115,6 +117,11 @@ def train(args):
         pbar = tqdm(dl)
         pbar.set_description("Epoch {}/{}: mAP: {:.4f}, val_loss: {:.4f}"
                              .format(epoch + 1, args.n_epochs, mAP, val_loss))
+
+        # in case of DyMN: update DyConv temperature
+        if hasattr(model, "update_params"):
+            model.update_params(epoch)
+
         for batch in pbar:
             x, f, y, i = batch
             bs = x.size(0)
@@ -247,8 +254,12 @@ def evaluate(args):
     if len(args.ensemble) > 0:
         model = get_ensemble_model(args.ensemble)
     else:
-        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
-                              head_type=args.head_type, se_dims=args.se_dims, strides=args.strides)
+        if model_name.startswith("dymn"):
+            model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
+                             strides=args.strides)
+        else:
+            model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
+                                  strides=args.strides, head_type=args.head_type)
     model.to(device)
     model.eval()
 
@@ -309,10 +320,11 @@ if __name__ == '__main__':
     # evaluation
     # overwrite 'pretrained_name' by 'ensemble' to evaluate an ensemble
     parser.add_argument('--ensemble', nargs='+', default=[])
-    parser.add_argument('--model_name', type=str, default="mn10_as")
+    parser.add_argument('--model_name', type=str, default="mn10_as")  # used also for training
 
     # training
-    parser.add_argument('--pretrained_name', type=str, default=None)
+    parser.add_argument('--pretrained', action='store_true', default=False)
+    parser.add_argument('--pretrain_final_temp', type=float, default=30.0)  # for DyMN
     parser.add_argument('--model_width', type=float, default=1.0)
     parser.add_argument('--strides', nargs=4, default=[2, 2, 2, 2], type=int)
     parser.add_argument('--head_type', type=str, default="mlp")
