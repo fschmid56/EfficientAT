@@ -14,8 +14,9 @@ from torch.hub import download_url_to_file
 import pickle
 
 from datasets.audioset import get_test_set, get_full_training_set, get_ft_weighted_sampler
-from models.mn.model import get_model as get_mobilenet, get_ensemble_model
+from models.mn.model import get_model as get_mobilenet
 from models.dymn.model import get_model as get_dymn
+from models.ensemble import get_ensemble_model
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
@@ -252,8 +253,10 @@ def evaluate(args):
 
     # load pre-trained model
     if len(args.ensemble) > 0:
+        print(f"Running AudioSet evaluation for models '{args.ensemble}' on device '{device}'")
         model = get_ensemble_model(args.ensemble)
     else:
+        print(f"Running AudioSet evaluation for model '{model_name}' on device '{device}'")
         if model_name.startswith("dymn"):
             model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
                              strides=args.strides)
@@ -280,7 +283,6 @@ def evaluate(args):
                     num_workers=args.num_workers,
                     batch_size=args.batch_size)
 
-    print(f"Running AudioSet evaluation for model '{model_name}' on device '{device}'")
     targets = []
     outputs = []
     for batch in tqdm(dl):
@@ -302,7 +304,10 @@ def evaluate(args):
     mAP = metrics.average_precision_score(targets, outputs, average=None)
     ROC = metrics.roc_auc_score(targets, outputs, average=None)
 
-    print(f"Results on AudioSet test split for loaded model: {model_name}")
+    if len(args.ensemble) > 0:
+        print(f"Results on AudioSet test split for loaded models: {args.ensemble}")
+    else:
+        print(f"Results on AudioSet test split for loaded model: {model_name}")
     print("  mAP: {:.3f}".format(mAP.mean()))
     print("  ROC: {:.3f}".format(ROC.mean()))
 

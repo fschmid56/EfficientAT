@@ -365,25 +365,3 @@ def get_model(num_classes: int = 527, pretrained_name: str = None, width_mult: f
                      )
     print(m)
     return m
-
-
-class EnsemblerModel(nn.Module):
-    def __init__(self, model_names):
-        super(EnsemblerModel, self).__init__()
-        self.models = nn.ModuleList([get_model(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name)
-                                     for model_name in model_names])
-
-    def forward(self, x):
-        all_out = None
-        for m in self.models:
-            out, _ = m(x)
-            if all_out is None:
-                all_out = out
-            else:
-                all_out = out + all_out
-        all_out = all_out / len(self.models)
-        return all_out, all_out
-
-
-def get_ensemble_model(model_names):
-    return EnsemblerModel(model_names)

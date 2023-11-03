@@ -95,7 +95,7 @@ papers. We provide the best models in this repository while the paper is showing
 |------------------|----------------------------------------------------|-------------------|-----------------|-------------------|
 | dymn04_as        | width_mult=0.4                                     | 1.97              | 0.12            | 45.0              |
 | dymn10_as        | width_mult=1.0                                     | 10.57             | 0.58            | 47.7              |
-| dymn20_as        | width_mult=2.0                                     | 40.02             | 2.2             | 49.0              |
+| dymn20_as        | width_mult=2.0                                     | 40.02             | 2.2             | 49.1              |
 | mn04_as          | width_mult=0.4                                     | 0.983             | 0.11            | 43.2              |
 | mn05_as          | width_mult=0.5                                     | 1.43              | 0.16            | 44.3              |
 | mn10_as          | width_mult=1.0                                     | 4.88              | 0.54            | 47.1              |
@@ -148,7 +148,7 @@ Music: 0.017
 You can also use an ensemble for perform inference, e.g.:
 
 ```
-python inference.py --ensemble mn40_as_ext mn40_as mn40_as_no_im_pre --cuda --audio_path=resources/metro_station-paris.wav
+python inference.py --ensemble dymn20_as mn40_as_ext mn40_as --cuda --audio_path=resources/metro_station-paris.wav
 ```
 
 

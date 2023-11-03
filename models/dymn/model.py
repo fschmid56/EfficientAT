@@ -25,6 +25,8 @@ pretrained_models = {
     "dymn04_as": urllib.parse.urljoin(model_url, "dymn04_as.pt"),
     "dymn10_as": urllib.parse.urljoin(model_url, "dymn10_as.pt"),
     "dymn20_as": urllib.parse.urljoin(model_url, "dymn20_as.pt"),
+    "dymn20_as(2)": urllib.parse.urljoin(model_url, "dymn20_as_mAP_489.pt"),
+    "dymn20_as(3)": urllib.parse.urljoin(model_url, "dymn20_as_mAP_490.pt"),
     "dymn04_replace_se_as": urllib.parse.urljoin(model_url, "dymn04_replace_se_as.pt"),
     "dymn10_replace_se_as": urllib.parse.urljoin(model_url, " dymn10_replace_se_as.pt"),
 }
