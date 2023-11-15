@@ -58,11 +58,12 @@ def train(args):
     # load prediction model
     model_name = args.model_name
     pretrained_name = model_name if args.pretrained else None
+    width = NAME_TO_WIDTH(model_name) if model_name and args.pretrained else args.model_width
     if model_name.startswith("dymn"):
-        model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=pretrained_name,
+        model = get_dymn(width_mult=width, pretrained_name=pretrained_name,
                          strides=args.strides, pretrain_final_temp=args.pretrain_final_temp)
     else:
-        model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=pretrained_name,
+        model = get_mobilenet(width_mult=width, pretrained_name=pretrained_name,
                               strides=args.strides, head_type=args.head_type)
     model.to(device)
 

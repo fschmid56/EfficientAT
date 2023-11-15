@@ -195,12 +195,12 @@ Results on AudioSet test split for loaded model: dymn10_as
 Logging is done using [Weights & Biases](https://wandb.ai/site). Create a free account to log your experiments. During training
 the latest model will be saved to the directory [wandb](wandb).
 
-To train a model on AudioSet, you can run for example the following command:
+To train a MobileNet (pre-trained on ImageNet) on AudioSet, you can run, for example, the following command:
 ```
-python ex_audioset.py --cuda --train --pretrained_name=dymn10_im --batch_size=60 --max_lr=0.0005
+python ex_audioset.py --cuda --train --pretrained --model_name=mn10_im --batch_size=60 --max_lr=0.0004
 ```
 
-Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Training-mn10_as-from-ImageNet-pre-trained-on-a-GeForce-RTX-2080-Ti--VmlldzozMDMwMTc4).
+Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/xbi9ijie).
 
 To train a tiny model (```model_width=0.1```) with Squeeze-and-Excitation [10] on the frequency dimension and a fully convolutional
 classification head, run the following command:
@@ -209,13 +209,29 @@ classification head, run the following command:
 python ex_audioset.py --cuda --train --batch_size=120 --model_width=0.1 --head_type=fully_convolutional --se_dims=f
 ```
 
-Checkout the results of this example configuration [here](https://wandb.ai/florians/EfficientAudioTagging/reports/Train-Tiny-Model-width-0-1---VmlldzozMDMwMjkx).
+Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/k6e7o8qh).
 
-To train a DyMN, pre-trained on ImageNet, run the following:
+To train a DyMN, pre-trained on ImageNet, run the following command:
 
 ```
 python ex_audioset.py --cuda --train --pretrained --model_name=dymn10_im --batch_size=120 --max_lr=0.001 --pretrain_final_temp=30
 ```
+
+Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/xu2v0on7).
+
+
+**To match the performance in the papers**, use a batch size of 120. However, a similar performance can be achieved by 
+scaling down batch size and learning rate proportionally.  
+
+For instance, the following command runs on a *NVIDIA GeForce RTX 2080 Ti* with 11 GB of memory.
+
+```
+python ex_audioset.py --cuda --train --pretrained --model_name=dymn10_im --batch_size=48 --max_lr=0.0004 --pretrain_final_temp=30
+```
+
+Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/532z11rr).
+
+
 
 ## Fine-tuning for Acoustic Scene Classification
 
