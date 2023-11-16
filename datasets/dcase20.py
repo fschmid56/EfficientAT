@@ -6,7 +6,7 @@ import torch
 import numpy as np
 import librosa
 
-from datasets.helpers.audiodatasets import PreprocessDataset, get_roll_func
+from datasets.helpers.audiodatasets import PreprocessDataset, get_roll_func, get_gain_augment_func
 
 dataset_dir = None
 assert dataset_dir is not None, "Specify 'TAU Urban Acoustic Scenes 2020 Mobile dataset' location in variable " \
@@ -86,12 +86,54 @@ class SimpleSelectionDataset(TorchDataset):
         return len(self.available_indices)
 
 
+class MixupDataset(TorchDataset):
+    """ Mixing Up wave forms
+    """
+
+    def __init__(self, dataset, beta=2, rate=0.5, num_classes=10):
+        self.beta = beta
+        self.rate = rate
+        self.dataset = dataset
+        self.num_classes = num_classes
+        print(f"Mixing up waveforms from dataset of len {len(dataset)}")
+
+    def __getitem__(self, index):
+        x1, f1, y1, d1, c1 = self.dataset[index]
+        y = np.zeros(self.num_classes, dtype="float32")
+        y[y1] = 1.
+        y1 = y
+        if torch.rand(1) < self.rate:
+            idx2 = torch.randint(len(self.dataset), (1,)).item()
+            x2, _, y2, _, _ = self.dataset[idx2]
+            y = np.zeros(self.num_classes, dtype="float32")
+            y[y2] = 1.
+            y2 = y
+            l = np.random.beta(self.beta, self.beta)
+            l = max(l, 1. - l)
+            x1 = x1 - x1.mean()
+            x2 = x2 - x2.mean()
+            x = (x1 * l + x2 * (1. - l))
+            x = x - x.mean()
+            return x, f1, (y1 * l + y2 * (1. - l)), d1, c1
+        return x1, f1, y1, d1, c1
+
+    def __len__(self):
+        return len(self.dataset)
+
+
 # commands to create the datasets for training and testing
-def get_training_set(cache_path=None, resample_rate=32000, roll=False):
+def get_training_set(cache_path=None, resample_rate=32000, roll=False, gain_augment=False, wavmix=False):
     ds = get_base_training_set(dataset_config['meta_csv'], dataset_config['train_files_csv'], cache_path,
                                resample_rate)
     if roll:
         ds = PreprocessDataset(ds, get_roll_func())
+
+    if gain_augment:
+        ds = PreprocessDataset(ds, get_gain_augment_func(gain_augment))
+
+    if wavmix:
+        ds = MixupDataset(ds)
+
     return ds
 
 

@@ -231,11 +231,36 @@ python ex_audioset.py --cuda --train --pretrained --model_name=dymn10_im --batch
 
 Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/532z11rr).
 
+## Fine-tune on FSD50K [12]
+
+Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/fsd50k) repository to get the FSD50K dataset.
+
+You should end up with a directory containing three files:
+
+* `FSD50K.train_mp3.hdf`
+* `FSD50K.val_mp3.hdf`
+* `FSD50K.eval_mp3.hdf`
+
+Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/fsd50k.py).
+
+To fine-tune a pre-trained MobileNet on FSD50K, run the following command:
+
+```
+python ex_fsd50k.py --cuda --train --pretrained --model_name=mn10_as
+```
+
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/uyulr8l3).
+
+To fine-tune a pre-trained DyMN on FSD50K, run the following command:
+
+```
+python ex_fsd50k.py --cuda --train --pretrained --model_name=dymn10_as --lr=0.00004 --batch_size=32
+```
+
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/3n3oxijl).
 
 
 ## Fine-tuning for Acoustic Scene Classification
-
-**Fine-Tuning of DyMNs will be added soonish.**
 
 Download the dataset *TAU Urban Acoustic Scenes 2020 Mobile, Development dataset* [11] from this [link](https://zenodo.org/record/3819968#.Y4jWjxso9GE).
 Extract all files, such that you have a directory with the following content:
@@ -245,46 +270,25 @@ Extract all files, such that you have a directory with the following content:
 
 Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/dcase20.py).
 
-To fine-tune a pre-trained model for acoustic scene classification run the following command:
+To fine-tune a pre-trained MobileNet for acoustic scene classification, run the following command:
 
 ```
-python ex_dcase20.py --cuda --pretrained_name=mn10_as --cache_path=<directory>
+python ex_dcase20.py --cuda --pretrained --model_name=mn10_as --cache_path=cache
 ```
 
-Specifying a cache path is recommended to store the resampled waveforms and avoid a bottleneck. 
+Specifying a cache path is recommended to store the resampled waveforms and avoid a bottleneck.
 
-The lightweight ```mn10_as``` can be fine-tuned on a GeForce RTX 2080 Ti
-in less than 15 minutes to around 70% accuracy, which is 90% of PaSST [1] SOTA performance (76,3% accuracy).
-``mn40_as`` achieves an accuracy of 74% with the default fine-tuning procedure. Tuning the hyperparameters in
-[ex_dcase20.py](ex_dcase20.py) might lead to higher accuracies.
+Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/i049eq4f).
 
-Checkout the results of the example run above [here](https://wandb.ai/florians/DCASE20/reports/Fine-Tuning-mn10_as-for-acoustic-scene-classification--VmlldzozMDcyNDk0?accessToken=6mflvehphxqybp64aw3n2fa6b603tw6voq60oy8bys3b5pb0fc9qgvxnxw1gqhx5).
-
-## Fine-tune on FSD50K [12]
-
-**Fine-Tuning of DyMNs will be added soonish.**
-
-Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/fsd50k) repository to get the FSD50K dataset.
-
-You should end up with three files:
-
-* `FSD50K.train_mp3.hdf`
-* `FSD50K.val_mp3.hdf`
-* `FSD50K.eval_mp3.hdf`
-
-Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/fsd50k.py).
-
-To fine-tune a pre-trained model on FSD50K run the following command:
+To fine-tune a pre-trained DyMN for acoustic scene classification, run the following command:
 
 ```
-python ex_fsd50k.py --cuda --pretrained_name=mn10_as
+python ex_dcase20.py --cuda --pretrained --model_name=dymn10_as --cache_path=cache --batch_size=32 --lr=0.0003
 ```
 
-Checkout the results of an example run [here](https://wandb.ai/florians/FSD50K/reports/Fine-tune-mn10_as-on-FSD50K--VmlldzozMTk0MzY5?accessToken=4mx9x8k2mgq424r4gjkcu0c2ipmk8irbdtz7bafvk97w1a71y5z67f7nj76l03gs).
+Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/eg5odk1a).
 
 ## Fine-tune on ESC-50 [13]
-
-**Fine-Tuning of DyMNs will be added soonish.**
 
 Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/esc50) repository to get the ESC50 dataset.
 
@@ -295,22 +299,24 @@ You should end up with a folder `esc50` containing the two folders:
 
 Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/esc50.py).
 
-To fine-tune a pre-trained model on ESC-50 run the following command:
+To fine-tune a pre-trained MobileNet on ESC-50, run the following command:
 
 ```
-python ex_esc50.py --cuda --pretrained_name=mn40_as_ext --fold=1
+python ex_esc50.py --cuda --pretrained --model_name=mn10_as --fold=1
 ```
 
 ESC-50 contains 2000 files and is divided into 5 cross-validation folds with 400 files each. The parameter `fold` specifies
 which fold is used for testing.
 
-Checkout the results of an example run [here](https://wandb.ai/florians/ESC50/reports/-mn40_as_ext-on-ESC50--VmlldzozMTk1NDYz?accessToken=f7s0b7h7ve6jtp8mc42exhj94pio8228udcl4ug6z4o1irrgtfeocz3b7c32exgh).
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/5r0tbm3x).
 
-While our models lag behind [PaSST](https://github.com/kkoutini/PaSST/) transformer performance on FSD50K due its large scale
-(around 50k audio samples) our models outperform PaSST on ESC-50 since the fine-tuning data is scarce (only 2000 samples).
+To fine-tune a pre-trained DyMN on ESC-50, run the following command:
 
-Compared to the results presented in the official [ESC-50 github repo](https://github.com/karolpiczak/ESC-50), we achieve a new SOTA accuracy of 97,45% with
-`mn40_as_ext` as pre-trained model.
+```
+python ex_esc50.py --cuda --pretrained --model_name=dymn10_as --fold=1 --lr=4e-5 --batch_size=64
+```
+
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/jfm8lpuz).
 
 ## References
 

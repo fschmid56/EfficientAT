@@ -216,7 +216,7 @@ def train(args):
         # remove previous model (we try to not flood your hard disk) and save latest model
         if name is not None:
             os.remove(os.path.join(wandb.run.dir, name))
-        name = f"mn{str(args.model_width).replace('.', '')}_as_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
+        name = f"mn{str(width).replace('.', '')}_as_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
         torch.save(model.state_dict(), os.path.join(wandb.run.dir, name))
 
 

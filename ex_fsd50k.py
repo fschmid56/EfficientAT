@@ -10,6 +10,7 @@ import torch.nn.functional as F
 
 from datasets.fsd50k import get_eval_set, get_valid_set, get_training_set
 from models.mn.model import get_model as get_mobilenet
+from models.dymn.model import get_model as get_dymn
 from models.preprocess import AugmentMelSTFT
 from helpers.init import worker_init_fn
 from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
@@ -45,20 +46,24 @@ def train(args):
     mel.to(device)
 
     # load prediction model
-    pretrained_name = args.pretrained_name
-    if pretrained_name:
-        model_width = NAME_TO_WIDTH(pretrained_name)
-        model = get_mobilenet(width_mult=model_width, pretrained_name=pretrained_name,
-                              head_type=args.head_type, se_dims=args.se_dims, num_classes=200)
+    model_name = args.model_name
+    pretrained_name = model_name if args.pretrained else None
+    width = NAME_TO_WIDTH(model_name) if model_name and args.pretrained else args.model_width
+    if model_name.startswith("dymn"):
+        model = get_dymn(width_mult=width, pretrained_name=pretrained_name,
+                         pretrain_final_temp=args.pretrain_final_temp,
+                         num_classes=200)
     else:
-        model_width = args.model_width
-        model = get_mobilenet(width_mult=model_width, head_type=args.head_type, se_dims=args.se_dims,
+        model = get_mobilenet(width_mult=width, pretrained_name=pretrained_name,
+                              head_type=args.head_type, se_dims=args.se_dims,
                               num_classes=200)
     model.to(device)
 
     # dataloader
-    dl = DataLoader(dataset=get_training_set(resample_rate=args.resample_rate, roll=args.roll,
-                                             wavmix=args.wavmix, gain_augment=args.gain_augment),
+    dl = DataLoader(dataset=get_training_set(resample_rate=args.resample_rate,
+                                             roll=False if args.no_roll else True,
+                                             wavmix=False if args.no_wavmix else True,
+                                             gain_augment=args.gain_augment),
                     worker_init_fn=worker_init_fn,
                     num_workers=args.num_workers,
                     batch_size=args.batch_size,
@@ -73,18 +78,7 @@ def train(args):
 
     # optimizer & scheduler
     lr = args.lr
-    features_lr = args.features_lr if args.features_lr else lr
-    classifier_lr = args.classifier_lr if args.classifier_lr else lr
-    last_layer_lr = args.last_layer_lr if args.last_layer_lr else classifier_lr
-
-    assert args.classifier_lr is None or args.last_layer_lr is None, "Either specify separate learning rate for " \
-                                                                     "last layer or classifier, not both."
-
-    optimizer = torch.optim.Adam([{'params': model.features.parameters(), 'lr': features_lr},
-                                  {'params': model.classifier[:5].parameters(), 'lr': classifier_lr},
-                                  {'params': model.classifier[5].parameters(), 'lr': last_layer_lr}
-                                  ],
-                                 lr=args.lr, weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # phases of lr schedule: exponential increase, constant lr, linear decrease, fine-tune
     schedule_lambda = \
         exp_warmup_linear_down(args.warm_up_len, args.ramp_down_len, args.ramp_down_start, args.last_lr_value)
@@ -115,8 +109,7 @@ def train(args):
                 y_mix = y * lam.reshape(bs, 1) + y[rn_indices] * (1. - lam.reshape(bs, 1))
                 samples_loss = F.binary_cross_entropy_with_logits(y_hat, y_mix, reduction="none")
             else:
-                x = model.features(x)
-                y_hat = model.classifier(x)
+                y_hat , _= model(x)
                 samples_loss = F.binary_cross_entropy_with_logits(y_hat, y, reduction="none")
 
             # loss
@@ -146,7 +139,7 @@ def train(args):
         # remove previous model (we try to not flood your hard disk) and save latest model
         if name is not None:
             os.remove(os.path.join(wandb.run.dir, name))
-        name = f"mn{str(model_width).replace('.', '')}_fsd50k_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
+        name = f"mn{str(width).replace('.', '')}_fsd50k_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
         torch.save(model.state_dict(), os.path.join(wandb.run.dir, name))
 
 
@@ -187,7 +180,7 @@ def _test(model, mel, eval_loader, device):
 
 
 def evaluate(args):
-    model_name = args.pretrained_name
+    model_name = args.model_name
     device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
 
     # load pre-trained model
@@ -251,29 +244,27 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=12)
 
     # validation & evaluation
-    # required setting validation and evaluation batch size to 1
+    # if true, requires setting validation and evaluation batch size to 1
     parser.add_argument('--variable_eval_length', action='store_true', default=False)
 
     # training
-    parser.add_argument('--pretrained_name', type=str, default=None)
+    parser.add_argument('--pretrained', action='store_true', default=False)
+    parser.add_argument('--model_name', type=str, default="mn10_as")
+    parser.add_argument('--pretrain_final_temp', type=float, default=1.0)  # for DyMN
     parser.add_argument('--model_width', type=float, default=1.0)
     parser.add_argument('--head_type', type=str, default="mlp")
     parser.add_argument('--se_dims', type=str, default="c")
-    parser.add_argument('--n_epochs', type=int, default=20)
-    parser.add_argument('--mixup_alpha', type=float, default=0)
-    parser.add_argument('--roll', action='store_true', default=False)
-    parser.add_argument('--wavmix', action='store_true', default=False)
-    parser.add_argument('--gain_augment', type=int, default=0)
-    parser.add_argument('--weight_decay', type=int, default=0.0001)
+    parser.add_argument('--n_epochs', type=int, default=80)
+    parser.add_argument('--mixup_alpha', type=float, default=0.3)
+    parser.add_argument('--no_roll', action='store_true', default=False)
+    parser.add_argument('--no_wavmix', action='store_true', default=False)
+    parser.add_argument('--gain_augment', type=int, default=12)
+    parser.add_argument('--weight_decay', type=int, default=0.0)
     # lr schedule
-    parser.add_argument('--lr', type=float, default=5e-5)
-    # individual learning rates possible for classifier, features or last layer
-    parser.add_argument('--classifier_lr', type=float, default=None)
-    parser.add_argument('--last_layer_lr', type=float, default=None)
-    parser.add_argument('--features_lr', type=float, default=None)
-    parser.add_argument('--warm_up_len', type=int, default=0)
-    parser.add_argument('--ramp_down_start', type=int, default=6)
-    parser.add_argument('--ramp_down_len', type=int, default=9)
+    parser.add_argument('--lr', type=float, default=7e-5)
+    parser.add_argument('--warm_up_len', type=int, default=10)
+    parser.add_argument('--ramp_down_start', type=int, default=10)
+    parser.add_argument('--ramp_down_len', type=int, default=65)
     parser.add_argument('--last_lr_value', type=float, default=0.01)
 
     # preprocessing

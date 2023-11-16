@@ -116,7 +116,8 @@ class AudioSetDataset(TorchDataset):
         if self.gain_augment:
             waveform = pydub_augment(waveform, self.gain_augment)
         waveform = pad_or_truncate(waveform, self.clip_length)
-        target = row.target
+        target = np.zeros(self.classes_num)
+        target[row.target] = 1
         return waveform.reshape(1, -1),  row.filename, target
 
 

@@ -23,12 +23,12 @@ class PreprocessDataset(Dataset):
         return len(self.dataset)
 
 
-def get_roll_func(axis=1, shift=None, shift_range=10000):
+def get_roll_func(axis=1, shift=None, shift_range=4000):
     return partial(roll_func, axis=axis, shift=shift, shift_range=shift_range)
 
 
 # roll waveform (over time)
-def roll_func(b, axis=1, shift=None, shift_range=10000):
+def roll_func(b, axis=1, shift=None, shift_range=4000):
     x = b[0]
     others = b[1:]
     x = torch.as_tensor(x)
@@ -36,3 +36,16 @@ def roll_func(b, axis=1, shift=None, shift_range=10000):
     if shift is None:
         sf = int(np.random.random_integers(-shift_range, shift_range))
     return (x.roll(sf, axis), *others)
+
+
+def get_gain_augment_func(gain_augment):
+    return partial(gain_augment_func, gain_augment=gain_augment)
+
+
+def gain_augment_func(b, gain_augment=12):
+    x = b[0]
+    others = b[1:]
+    gain = torch.randint(gain_augment * 2, (1,)).item() - gain_augment
+    amp = 10 ** (gain / 20)
+    x = x * amp
+    return (x, *others)
