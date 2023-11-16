@@ -52,7 +52,9 @@ def train(args):
                          freqm=args.freqm,
                          timem=args.timem,
                          fmin=args.fmin,
-                         fmax=args.fmax
+                         fmax=args.fmax,
+                         fmin_aug_range=args.fmin_aug_range,
+                         fmax_aug_range=args.fmax_aug_range
                          )
     mel.to(device)
     # load prediction model
@@ -64,7 +66,7 @@ def train(args):
                          strides=args.strides, pretrain_final_temp=args.pretrain_final_temp)
     else:
         model = get_mobilenet(width_mult=width, pretrained_name=pretrained_name,
-                              strides=args.strides, head_type=args.head_type)
+                              strides=args.strides, head_type=args.head_type, se_dims=args.se_dims)
     model.to(device)
 
     # dataloader
@@ -81,8 +83,14 @@ def train(args):
                          num_workers=args.num_workers,
                          batch_size=args.batch_size)
 
-    # optimizer & scheduler
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr)
+    if args.adamw:
+        # optimizer & scheduler
+        optimizer = torch.optim.AdamW(model.parameters(), lr=args.max_lr, weight_decay=args.weight_decay)
+    else:
+        # optimizer & scheduler
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.max_lr, weight_decay=args.weight_decay)
+
+
     # phases of lr schedule: exponential increase, constant lr, linear decrease, fine-tune
     schedule_lambda = \
         exp_warmup_linear_down(args.warm_up_len, args.ramp_down_len, args.ramp_down_start, args.last_lr_value)
@@ -324,7 +332,7 @@ if __name__ == '__main__':
     parser.add_argument('--num_workers', type=int, default=12)
 
     # evaluation
-    # overwrite 'pretrained_name' by 'ensemble' to evaluate an ensemble
+    # if ensemble is set, 'model_name' is not used
     parser.add_argument('--ensemble', nargs='+', default=[])
     parser.add_argument('--model_name', type=str, default="mn10_as")  # used also for training
 
@@ -342,6 +350,9 @@ if __name__ == '__main__':
     parser.add_argument('--wavmix', action='store_true', default=False)
     parser.add_argument('--gain_augment', type=int, default=0)
 
+    # optimizer
+    parser.add_argument('--adamw', action='store_true', default=False)
+    parser.add_argument('--weight_decay', type=float, default=0)
     # lr schedule
     parser.add_argument('--max_lr', type=float, default=0.0008)
     parser.add_argument('--warm_up_len', type=int, default=8)
@@ -367,6 +378,8 @@ if __name__ == '__main__':
     parser.add_argument('--timem', type=int, default=0)
     parser.add_argument('--fmin', type=int, default=0)
     parser.add_argument('--fmax', type=int, default=None)
+    parser.add_argument('--fmin_aug_range', type=int, default=10)
+    parser.add_argument('--fmax_aug_range', type=int, default=2000)
 
     args = parser.parse_args()
     if args.train:
