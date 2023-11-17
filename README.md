@@ -41,7 +41,7 @@ for all models.
 The next milestones are:
 * Add the fine-tuning pipeline used in the [DyMN](https://arxiv.org/pdf/2310.15648.pdf) paper submitted to TASLP 
 * Wrap this repository in an installable python package
-* Use pytorch lightening to enable distributed training
+* Use pytorch lightening to enable distributed training and training with fp16 
 
 The final repository should have similar capabilities as the [PANNs codebase](https://github.com/qiuqiangkong/audioset_tagging_cnn)
 with two main advantages:
@@ -318,6 +318,34 @@ python ex_esc50.py --cuda --pretrained --model_name=dymn10_as --fold=1 --lr=4e-5
 
 Checkout the results of an example run [here](https://api.wandb.ai/links/florians/jfm8lpuz).
 
+## Fine-tune on OpenMic [17]
+
+[OpenMIC-2018](https://zenodo.org/records/1432913#.W6dPeJNKjOR) is a dataset for polyphonic instruments identification. Follow the instructions in the [PaSST](https://github.com/kkoutini/PaSST/tree/main/openmic) repository to get the 
+OpenMIC-2018 dataset in the correct format.
+
+You should end up with a directory containing two files:
+
+* `openmic_train.csv_mp3.hdf`
+* `openmic_test.csv_mp3.hdf`
+
+Specify the location of this directory in the variable ```dataset_dir``` in the [dataset file](datasets/fsd50k.py).
+
+To fine-tune a pre-trained MobileNet on OpenMic, run the following command:
+
+```
+python ex_openmic.py --cuda --train --pretrained --model_name=mn10_as
+```
+
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/hhm7zj73).
+
+To fine-tune a pre-trained DyMN on OpenMic, run the following command:
+
+```
+python ex_openmic.py --cuda --train --pretrained --model_name=dymn10_as --lr=5e-6 --batch_size=32
+```
+
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/5gdexqke).
+
 ## References
 
 [1] Khaled Koutini, Jan Schlüter, Hamid Eghbal-zadeh, and Gerhard Widmer, 
@@ -364,3 +392,5 @@ Detection and Classification of Acoustic Scenes and Events 2020 Workshop (DCASE2
 
 [16] S. Chen, Y. Wu, C. Wang, S. Liu, D. Tompkins, Z. Chen, W. Che, X. Yu, and F. Wei, “Beats: Audio pre-training with acoustic tokenizers,”
 in Proceedings of the International Conference on Machine Learning (ICML), ser. Proceedings of Machine Learning Research, vol. 202, 2023, pp. 5178–5193.
+
+[17] Humphrey, E., Durand, S., & McFee, B. (2018, September). OpenMIC-2018: An Open Data-set for Multiple Instrument Recognition. In ISMIR (pp. 438-444).

@@ -8,7 +8,7 @@ import argparse
 from sklearn import metrics
 import torch.nn.functional as F
 
-from datasets.fsd50k import get_eval_set, get_valid_set, get_training_set
+from datasets.openmic import get_test_set, get_training_set
 from models.mn.model import get_model as get_mobilenet
 from models.dymn.model import get_model as get_dymn
 from models.preprocess import AugmentMelSTFT
@@ -17,13 +17,13 @@ from helpers.utils import NAME_TO_WIDTH, exp_warmup_linear_down, mixup
 
 
 def train(args):
-    # Train Models on FSD50K
+    # Train Models on OpenMic
 
     # logging is done using wandb
     wandb.init(
-        project="FSD50K",
-        notes="Fine-tune Models on FSD50K.",
-        tags=["FSDK50K", "Audio Tagging"],
+        project="OpenMic",
+        notes="Fine-tune Models on OpenMic.",
+        tags=["OpenMic", "Instrument Recognition"],
         config=args,
         name=args.experiment_name
     )
@@ -52,11 +52,11 @@ def train(args):
     if model_name.startswith("dymn"):
         model = get_dymn(width_mult=width, pretrained_name=pretrained_name,
                          pretrain_final_temp=args.pretrain_final_temp,
-                         num_classes=200)
+                         num_classes=20)
     else:
         model = get_mobilenet(width_mult=width, pretrained_name=pretrained_name,
                               head_type=args.head_type, se_dims=args.se_dims,
-                              num_classes=200)
+                              num_classes=20)
     model.to(device)
 
     # dataloader
@@ -70,11 +70,10 @@ def train(args):
                     shuffle=True)
 
     # evaluation loader
-    valid_dl = DataLoader(dataset=get_valid_set(resample_rate=args.resample_rate,
-                                                variable_eval=args.variable_eval_length),
+    valid_dl = DataLoader(dataset=get_test_set(resample_rate=args.resample_rate),
                           worker_init_fn=worker_init_fn,
                           num_workers=args.num_workers,
-                          batch_size=1 if args.variable_eval_length else args.batch_size)
+                          batch_size=args.batch_size)
 
     # optimizer & scheduler
     lr = args.lr
@@ -100,6 +99,10 @@ def train(args):
             x, y = x.to(device), y.to(device)
             x = _mel_forward(x, mel)
 
+            y_mask = y[:, 20:]
+            y = y[:, :20] > 0.5
+            y = y.float()
+
             if args.mixup_alpha:
                 rn_indices, lam = mixup(bs, args.mixup_alpha)
                 lam = lam.to(x.device)
@@ -108,9 +111,11 @@ def train(args):
                 y_hat, _ = model(x)
                 y_mix = y * lam.reshape(bs, 1) + y[rn_indices] * (1. - lam.reshape(bs, 1))
                 samples_loss = F.binary_cross_entropy_with_logits(y_hat, y_mix, reduction="none")
+                samples_loss = y_mask.float() * samples_loss
             else:
-                y_hat , _= model(x)
+                y_hat, _ = model(x)
                 samples_loss = F.binary_cross_entropy_with_logits(y_hat, y, reduction="none")
+                samples_loss = y_mask.float() * samples_loss
 
             # loss
             loss = samples_loss.mean()
@@ -122,6 +127,7 @@ def train(args):
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
+
         # Update learning rate
         scheduler.step()
 
@@ -139,7 +145,7 @@ def train(args):
         # remove previous model (we try to not flood your hard disk) and save latest model
         if name is not None:
             os.remove(os.path.join(wandb.run.dir, name))
-        name = f"mn{str(width).replace('.', '')}_fsd50k_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
+        name = f"mn{str(width).replace('.', '')}_openmic_epoch_{epoch}_mAP_{int(round(mAP*1000))}.pt"
         torch.save(model.state_dict(), os.path.join(wandb.run.dir, name))
 
 
@@ -156,6 +162,7 @@ def _test(model, mel, eval_loader, device):
     mel.eval()
 
     targets = []
+    targets_mask = []
     outputs = []
     losses = []
     pbar = tqdm(eval_loader)
@@ -164,97 +171,50 @@ def _test(model, mel, eval_loader, device):
         x, _, y = batch
         x = x.to(device)
         y = y.to(device)
+        y_mask = y[:, 20:]
+        y = y[:, :20] > 0.5
+        y = y.float()
         with torch.no_grad():
             x = _mel_forward(x, mel)
             y_hat, _ = model(x)
-        targets.append(y.cpu().numpy())
-        outputs.append(y_hat.float().cpu().numpy())
-        losses.append(F.binary_cross_entropy_with_logits(y_hat, y).cpu().numpy())
+
+        samples_loss = F.binary_cross_entropy_with_logits(y_hat, y, reduction="none")
+        samples_loss = y_mask.float() * samples_loss
+        losses.append(samples_loss.mean().cpu().numpy())
+
+        targets.append(y.float().cpu().numpy())
+        targets_mask.append(y_mask.float().cpu().numpy())
+        outputs.append(torch.sigmoid(y_hat.float()).cpu().numpy())
 
     targets = np.concatenate(targets)
+    targets_mask = np.concatenate(targets_mask)
     outputs = np.concatenate(outputs)
     losses = np.stack(losses)
-    mAP = metrics.average_precision_score(targets, outputs, average=None)
-    ROC = metrics.roc_auc_score(targets, outputs, average=None)
+
+    try:
+        mAP = np.array([metrics.average_precision_score(
+                        targets[:, i], outputs[:, i], sample_weight=targets_mask[:, i]) for i in range(targets.shape[1])])
+    except ValueError:
+        mAP = np.array([np.nan] * targets.shape[1])
+
+    try:
+        ROC = np.array([metrics.roc_auc_score(
+                        targets[:, i], outputs[:, i], sample_weight=targets_mask[:, i]) for i in range(targets.shape[1])])
+    except ValueError:
+        ROC = np.array([np.nan] * targets.shape[1])
+
     return mAP.mean(), ROC.mean(), losses.mean()
-
-
-def evaluate(args):
-    model_name = args.model_name
-    device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
-
-    # load pre-trained model
-    model_name = args.model_name
-    width = NAME_TO_WIDTH(model_name)
-    if model_name.startswith("dymn"):
-        model = get_dymn(width_mult=width, pretrained_name=model_name,
-                         pretrain_final_temp=args.pretrain_final_temp,
-                         num_classes=200)
-    else:
-        model = get_mobilenet(width_mult=width, pretrained_name=model_name,
-                              head_type=args.head_type, se_dims=args.se_dims,
-                              num_classes=200)
-    model.to(device)
-    model.eval()
-
-    # model to preprocess waveform into mel spectrograms
-    mel = AugmentMelSTFT(n_mels=args.n_mels,
-                         sr=args.resample_rate,
-                         win_length=args.window_size,
-                         hopsize=args.hop_size,
-                         n_fft=args.n_fft,
-                         freqm=args.freqm,
-                         timem=args.timem,
-                         fmin=args.fmin,
-                         fmax=args.fmax,
-                         fmin_aug_range=args.fmin_aug_range,
-                         fmax_aug_range=args.fmax_aug_range
-                         )
-    mel.to(device)
-    mel.eval()
-
-    dl = DataLoader(dataset=get_eval_set(resample_rate=args.resample_rate,
-                                         variable_eval=args.variable_eval_length),
-                    worker_init_fn=worker_init_fn,
-                    num_workers=args.num_workers,
-                    batch_size=1 if args.variable_eval_length else args.batch_size)
-
-    print(f"Running FSD50K evaluation for model '{model_name}' on device '{device}'")
-    targets = []
-    outputs = []
-    for batch in tqdm(dl):
-        x, _, y = batch
-        x = x.to(device)
-        y = y.to(device)
-        with torch.no_grad():
-            x = _mel_forward(x, mel)
-            y_hat, _ = model(x)
-        targets.append(y.cpu().numpy())
-        outputs.append(y_hat.float().cpu().numpy())
-
-    targets = np.concatenate(targets)
-    outputs = np.concatenate(outputs)
-    mAP = metrics.average_precision_score(targets, outputs, average=None)
-    ROC = metrics.roc_auc_score(targets, outputs, average=None)
-
-    print(f"Results on FSD50K evaluation split for loaded model: {model_name}")
-    print("  mAP: {:.3f}".format(mAP.mean()))
-    print("  ROC: {:.3f}".format(ROC.mean()))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example of parser. ')
 
     # general
-    parser.add_argument('--experiment_name', type=str, default="FSD50K")
+    parser.add_argument('--experiment_name', type=str, default="OpenMic")
     parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--cuda', action='store_true', default=False)
     parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--num_workers', type=int, default=12)
-
-    # validation & evaluation
-    # if true, requires setting validation and evaluation batch size to 1
-    parser.add_argument('--variable_eval_length', action='store_true', default=False)
 
     # training
     parser.add_argument('--pretrained', action='store_true', default=False)
@@ -270,7 +230,7 @@ if __name__ == '__main__':
     parser.add_argument('--gain_augment', type=int, default=12)
     parser.add_argument('--weight_decay', type=int, default=0.0)
     # lr schedule
-    parser.add_argument('--lr', type=float, default=7e-5)
+    parser.add_argument('--lr', type=float, default=1e-5)
     parser.add_argument('--warm_up_len', type=int, default=10)
     parser.add_argument('--ramp_down_start', type=int, default=10)
     parser.add_argument('--ramp_down_len', type=int, default=65)
