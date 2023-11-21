@@ -219,9 +219,16 @@ python ex_audioset.py --cuda --train --pretrained --model_name=dymn10_im --batch
 
 Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/xu2v0on7).
 
+To train a DyMN, pre-trained on ImageNet, using Adamw optimizer and a weight decay, run the following command:
 
-**To match the performance in the papers**, use a batch size of 120. However, a similar performance can be achieved by 
-scaling down batch size and learning rate proportionally.  
+```
+python ex_audioset.py --cuda --train --pretrained --model_name=dymn10_im --batch_size=120 --max_lr=0.001 --pretrain_final_temp=30 --adamw --weight_decay=0.0001
+```
+
+Checkout the results of this example configuration [here](https://api.wandb.ai/links/florians/00pijva0).
+
+
+A similar performance can be achieved by scaling down batch size and learning rate proportionally.  
 
 For instance, the following command runs on a *NVIDIA GeForce RTX 2080 Ti* with 11 GB of memory.
 
@@ -341,10 +348,10 @@ Checkout the results of an example run [here](https://api.wandb.ai/links/florian
 To fine-tune a pre-trained DyMN on OpenMic, run the following command:
 
 ```
-python ex_openmic.py --cuda --train --pretrained --model_name=dymn10_as --lr=5e-6 --batch_size=32
+python ex_openmic.py --cuda --train --pretrained --model_name=dymn10_as --lr=2e-5 --batch_size=32
 ```
 
-Checkout the results of an example run [here](https://api.wandb.ai/links/florians/5gdexqke).
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/qo32vrgl).
 
 ## References
 

@@ -77,7 +77,6 @@ def train(args):
                           batch_size=1 if args.variable_eval_length else args.batch_size)
 
     # optimizer & scheduler
-    lr = args.lr
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     # phases of lr schedule: exponential increase, constant lr, linear decrease, fine-tune
     schedule_lambda = \
