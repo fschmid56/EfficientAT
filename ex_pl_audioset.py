@@ -83,6 +83,10 @@ class PLModule(pl.LightningModule):
             fname_to_index = pickle.load(f)
         self.fname_to_index = fname_to_index
 
+        self.distributed_mode = config.num_devices > 1
+        self.training_step_outputs = []
+        self.validation_step_outputs = []
+
     def mel_forward(self, x):
         old_shape = x.size()
         x = x.reshape(-1, old_shape[2])
@@ -123,7 +127,7 @@ class PLModule(pl.LightningModule):
             'lr_scheduler': lr_scheduler
         }
 
-    def on_train_epoch_start(self, *arg, **kwargs):
+    def on_train_epoch_start(self):
         # in case of DyMN: update DyConv temperature
         if hasattr(self.model, "update_params"):
             self.model.update_params(self.current_epoch)
@@ -189,18 +193,24 @@ class PLModule(pl.LightningModule):
         # total loss is sum of lambda-weighted label and distillation loss
         loss = label_loss + soft_targets_loss
 
-        results = {"loss": loss, "label_loss": label_loss.detach(), "kd_loss": soft_targets_loss.detach()}
-        return results
+        results = {"loss": loss.detach().cpu(), "label_loss": label_loss.detach().cpu(),
+                   "kd_loss": soft_targets_loss.detach().cpu()}
+        self.training_step_outputs.append(results)
+        return loss
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         """
-        :param outputs: contains the items you log in 'training_step'
         :return: a dict containing the metrics you want to log to Weights and Biases
         """
-        avg_loss = torch.stack([x['loss'] for x in outputs]).mean()
-        avg_label_loss = torch.stack([x['label_loss'] for x in outputs]).mean()
-        avg_kd_loss = torch.stack([x['kd_loss'] for x in outputs]).mean()
-        self.log_dict({'loss': avg_loss, 'label_loss': avg_label_loss, 'kd_loss': avg_kd_loss}, sync_dist=True)
+        avg_loss = torch.stack([x['loss'] for x in self.training_step_outputs]).mean()
+        avg_label_loss = torch.stack([x['label_loss'] for x in self.training_step_outputs]).mean()
+        avg_kd_loss = torch.stack([x['kd_loss'] for x in self.training_step_outputs]).mean()
+        self.log_dict({'train/loss': torch.as_tensor(avg_loss).cuda(),
+                       'train/label_loss': torch.as_tensor(avg_label_loss).cuda(),
+                       'train/kd_loss': torch.as_tensor(avg_kd_loss).cuda()
+                       }, sync_dist=True)
+
+        self.training_step_outputs.clear()
 
     def validation_step(self, val_batch, batch_idx):
         x, _, y = val_batch
@@ -210,27 +220,32 @@ class PLModule(pl.LightningModule):
         preds = torch.sigmoid(y_hat)
         results = {'val_loss': loss, "preds": preds, "targets": y}
         results = {k: v.cpu() for k, v in results.items()}
-        return results
+        self.validation_step_outputs.append(results)
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack([x['val_loss'] for x in outputs]).mean()
-        preds = torch.cat([x['preds'] for x in outputs], dim=0)
-        targets = torch.cat([x['targets'] for x in outputs], dim=0)
+    def on_validation_epoch_end(self):
+        loss = torch.stack([x['val_loss'] for x in self.validation_step_outputs])
+        preds = torch.cat([x['preds'] for x in self.validation_step_outputs], dim=0)
+        targets = torch.cat([x['targets'] for x in self.validation_step_outputs], dim=0)
+
+        all_preds = self.all_gather(preds).reshape(-1, preds.shape[-1]).cpu().float().numpy()
+        all_targets = self.all_gather(targets).reshape(-1, targets.shape[-1]).cpu().float().numpy()
+        all_loss = self.all_gather(loss).reshape(-1,)
 
         try:
             average_precision = metrics.average_precision_score(
-                targets.float().numpy(), preds.float().numpy(), average=None)
+                all_targets, all_preds, average=None)
         except ValueError:
             average_precision = np.array([np.nan] * 527)
         try:
-            roc = metrics.roc_auc_score(targets.numpy(), preds.numpy(), average=None)
+            roc = metrics.roc_auc_score(all_targets, all_preds, average=None)
         except ValueError:
             roc = np.array([np.nan] * 527)
-        logs = {'val.loss': torch.as_tensor(avg_loss).cuda(),
-                'ap': torch.as_tensor(average_precision.mean()).cuda(),
-                'roc': torch.as_tensor(roc.mean()).cuda(),
-                'step': torch.as_tensor(self.current_epoch).cuda()}
-        self.log_dict(logs, sync_dist=True)
+        logs = {'val/loss': torch.as_tensor(all_loss).mean().cuda(),
+                'val/ap': torch.as_tensor(average_precision).mean().cuda(),
+                'val/roc': torch.as_tensor(roc).mean().cuda()
+                }
+        self.log_dict(logs, sync_dist=False)
+        self.validation_step_outputs.clear()
 
 
 def train(config):
@@ -247,7 +262,6 @@ def train(config):
         name=config.experiment_name
     )
 
-    # train dataloader
     train_dl = DataLoader(dataset=get_full_training_set(resample_rate=config.resample_rate,
                                                         roll=config.roll,
                                                         wavmix=config.wavmix,
@@ -273,77 +287,13 @@ def train(config):
     trainer = pl.Trainer(max_epochs=config.n_epochs,
                          logger=wandb_logger,
                          accelerator='auto',
-                         devices=1,
+                         devices=config.num_devices,
                          precision=config.precision,
+                         num_sanity_val_steps=0,
                          callbacks=[lr_monitor])
 
     # start training and validation for the specified number of epochs
     trainer.fit(pl_module, train_dl, eval_dl)
-
-
-def evaluate(args):
-    model_name = args.model_name
-    device = torch.device('cuda') if args.cuda and torch.cuda.is_available() else torch.device('cpu')
-
-    # load pre-trained model
-    if len(args.ensemble) > 0:
-        print(f"Running AudioSet evaluation for models '{args.ensemble}' on device '{device}'")
-        model = get_ensemble_model(args.ensemble)
-    else:
-        print(f"Running AudioSet evaluation for model '{model_name}' on device '{device}'")
-        if model_name.startswith("dymn"):
-            model = get_dymn(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
-                             strides=args.strides)
-        else:
-            model = get_mobilenet(width_mult=NAME_TO_WIDTH(model_name), pretrained_name=model_name,
-                                  strides=args.strides, head_type=args.head_type)
-    model.to(device)
-    model.eval()
-
-    # model to preprocess waveform into mel spectrograms
-    mel = AugmentMelSTFT(n_mels=args.n_mels,
-                         sr=args.resample_rate,
-                         win_length=args.window_size,
-                         hopsize=args.hop_size,
-                         n_fft=args.n_fft,
-                         fmin=args.fmin,
-                         fmax=args.fmax
-                         )
-    mel.to(device)
-    mel.eval()
-
-    dl = DataLoader(dataset=get_test_set(resample_rate=args.resample_rate),
-                    worker_init_fn=worker_init_fn,
-                    num_workers=args.num_workers,
-                    batch_size=args.batch_size)
-
-    targets = []
-    outputs = []
-    for batch in tqdm(dl):
-        x, _, y = batch
-        x = x.to(device)
-        y = y.to(device)
-        # our models are trained in half precision mode (torch.float16)
-        # run on cuda with torch.float16 to get the best performance
-        # running on cpu with torch.float32 gives similar performance, using torch.bfloat16 is worse
-        with autocast(device_type=device.type) if args.cuda else nullcontext():
-            with torch.no_grad():
-                x = _mel_forward(x, mel)
-                y_hat, _ = model(x)
-        targets.append(y.cpu().numpy())
-        outputs.append(y_hat.float().cpu().numpy())
-
-    targets = np.concatenate(targets)
-    outputs = np.concatenate(outputs)
-    mAP = metrics.average_precision_score(targets, outputs, average=None)
-    ROC = metrics.roc_auc_score(targets, outputs, average=None)
-
-    if len(args.ensemble) > 0:
-        print(f"Results on AudioSet test split for loaded models: {args.ensemble}")
-    else:
-        print(f"Results on AudioSet test split for loaded model: {model_name}")
-    print("  mAP: {:.3f}".format(mAP.mean()))
-    print("  ROC: {:.3f}".format(ROC.mean()))
 
 
 if __name__ == '__main__':
@@ -354,6 +304,7 @@ if __name__ == '__main__':
     parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--batch_size', type=int, default=120)
     parser.add_argument('--num_workers', type=int, default=12)
+    parser.add_argument('--num_devices', type=int, default=4)
 
     # evaluation
     # if ensemble is set, 'model_name' is not used
@@ -378,9 +329,9 @@ if __name__ == '__main__':
 
     # optimizer
     parser.add_argument('--adamw', action='store_true', default=False)
-    parser.add_argument('--weight_decay', type=float, default=0)
+    parser.add_argument('--weight_decay', type=float, default=0.0001)
     # lr schedule
-    parser.add_argument('--max_lr', type=float, default=0.0008)
+    parser.add_argument('--max_lr', type=float, default=0.003)
     parser.add_argument('--warm_up_len', type=int, default=8)
     parser.add_argument('--ramp_down_start', type=int, default=80)
     parser.add_argument('--ramp_down_len', type=int, default=95)
