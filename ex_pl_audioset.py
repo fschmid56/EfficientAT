@@ -301,7 +301,6 @@ if __name__ == '__main__':
 
     # general
     parser.add_argument('--experiment_name', type=str, default="AudioSet")
-    parser.add_argument('--train', action='store_true', default=False)
     parser.add_argument('--batch_size', type=int, default=120)
     parser.add_argument('--num_workers', type=int, default=12)
     parser.add_argument('--num_devices', type=int, default=4)
@@ -359,7 +358,4 @@ if __name__ == '__main__':
     parser.add_argument('--fmax_aug_range', type=int, default=2000)
 
     args = parser.parse_args()
-    if args.train:
-        train(args)
-    else:
-        evaluate(args)
+    train(args)
