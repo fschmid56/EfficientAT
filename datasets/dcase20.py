@@ -21,9 +21,9 @@ dataset_config = {
 }
 
 
-class BasicDCASE22Dataset(TorchDataset):
+class BasicDCASE20Dataset(TorchDataset):
     """
-    Basic DCASE22 Dataset
+    Basic DCASE20 Dataset
     """
 
     def __init__(self, meta_csv, sr=32000, cache_path=None):
@@ -58,7 +58,7 @@ class BasicDCASE22Dataset(TorchDataset):
         else:
             sig, _ = librosa.load(os.path.join(dataset_dir, self.files[index]), sr=self.sr, mono=True)
             sig = torch.from_numpy(sig[np.newaxis])
-        return sig, self.labels[index], self.devices[index], self.cities[index]
+        return sig, self.files[index], self.labels[index], self.devices[index], self.cities[index]
 
     def __len__(self):
         return len(self.files)
@@ -79,8 +79,8 @@ class SimpleSelectionDataset(TorchDataset):
         self.dataset = dataset
 
     def __getitem__(self, index):
-        x, label, device, city = self.dataset[self.available_indices[index]]
-        return x, label, device, city, self.available_indices[index]
+        x, file, label, device, city = self.dataset[self.available_indices[index]]
+        return x, file, label, device, city, self.available_indices[index]
 
     def __len__(self):
         return len(self.available_indices)
@@ -98,13 +98,13 @@ class MixupDataset(TorchDataset):
         print(f"Mixing up waveforms from dataset of len {len(dataset)}")
 
     def __getitem__(self, index):
-        x1, f1, y1, d1, c1 = self.dataset[index]
+        x1, f1, y1, d1, c1, i1 = self.dataset[index]
         y = np.zeros(self.num_classes, dtype="float32")
         y[y1] = 1.
         y1 = y
         if torch.rand(1) < self.rate:
             idx2 = torch.randint(len(self.dataset), (1,)).item()
-            x2, _, y2, _, _ = self.dataset[idx2]
+            x2, _, y2, _, _, _ = self.dataset[idx2]
             y = np.zeros(self.num_classes, dtype="float32")
             y[y2] = 1.
             y2 = y
@@ -114,8 +114,8 @@ class MixupDataset(TorchDataset):
             x2 = x2 - x2.mean()
             x = (x1 * l + x2 * (1. - l))
             x = x - x.mean()
-            return x, f1, (y1 * l + y2 * (1. - l)), d1, c1
-        return x1, f1, y1, d1, c1
+            return x, f1, (y1 * l + y2 * (1. - l)), d1, c1, i1
+        return x1, f1, y1, d1, c1, i1
 
     def __len__(self):
         return len(self.dataset)
@@ -141,7 +141,7 @@ def get_base_training_set(meta_csv, train_files_csv, cache_path, resample_rate):
     train_files = pd.read_csv(train_files_csv, sep='\t')['filename'].values.reshape(-1)
     meta = pd.read_csv(meta_csv, sep="\t")
     train_indices = list(meta[meta['filename'].isin(train_files)].index)
-    ds = SimpleSelectionDataset(BasicDCASE22Dataset(meta_csv, sr=resample_rate, cache_path=cache_path), train_indices)
+    ds = SimpleSelectionDataset(BasicDCASE20Dataset(meta_csv, sr=resample_rate, cache_path=cache_path), train_indices)
     return ds
 
 
@@ -155,5 +155,5 @@ def get_base_test_set(meta_csv, test_files_csv, cache_path, resample_rate):
     test_files = pd.read_csv(test_files_csv, sep='\t')['filename'].values.reshape(-1)
     meta = pd.read_csv(meta_csv, sep="\t")
     test_indices = list(meta[meta['filename'].isin(test_files)].index)
-    ds = SimpleSelectionDataset(BasicDCASE22Dataset(meta_csv, sr=resample_rate, cache_path=cache_path), test_indices)
+    ds = SimpleSelectionDataset(BasicDCASE20Dataset(meta_csv, sr=resample_rate, cache_path=cache_path), test_indices)
     return ds

@@ -96,7 +96,7 @@ def train(args):
         pbar.set_description("Epoch {}/{}: accuracy: {:.4f}, val_loss: {:.4f}"
                              .format(epoch + 1, args.n_epochs, accuracy, val_loss))
         for batch in pbar:
-            x, y, dev, city, index = batch
+            x, f, y, dev, city, index = batch
             bs = x.size(0)
             x, y = x.to(device), y.to(device)
             x = _mel_forward(x, mel)
@@ -166,7 +166,7 @@ def _test(model, mel, eval_loader, device):
     pbar = tqdm(eval_loader)
     pbar.set_description("Validating")
     for batch in pbar:
-        x, y, dev, city, index = batch
+        x, f, y, dev, city, index = batch
         x = x.to(device)
         y = y.to(device)
         with torch.no_grad():
