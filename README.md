@@ -343,7 +343,7 @@ To fine-tune a pre-trained MobileNet on OpenMic, run the following command:
 python ex_openmic.py --cuda --train --pretrained --model_name=mn10_as
 ```
 
-Checkout the results of an example run [here](https://api.wandb.ai/links/florians/hhm7zj73).
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/a23ye448).
 
 To fine-tune a pre-trained DyMN on OpenMic, run the following command:
 
@@ -351,7 +351,7 @@ To fine-tune a pre-trained DyMN on OpenMic, run the following command:
 python ex_openmic.py --cuda --train --pretrained --model_name=dymn10_as --lr=2e-5 --batch_size=32
 ```
 
-Checkout the results of an example run [here](https://api.wandb.ai/links/florians/qo32vrgl).
+Checkout the results of an example run [here](https://api.wandb.ai/links/florians/v05iua2s). 
 
 ## References
 
