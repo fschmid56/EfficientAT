@@ -285,7 +285,7 @@ python ex_dcase20.py --cuda --pretrained --model_name=mn10_as --cache_path=cache
 
 Specifying a cache path is recommended to store the resampled waveforms and avoid a bottleneck.
 
-Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/i049eq4f).
+Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/7o6g19le). 
 
 To fine-tune a pre-trained DyMN for acoustic scene classification, run the following command:
 
@@ -293,7 +293,7 @@ To fine-tune a pre-trained DyMN for acoustic scene classification, run the follo
 python ex_dcase20.py --cuda --pretrained --model_name=dymn10_as --cache_path=cache --batch_size=32 --lr=0.0003
 ```
 
-Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/eg5odk1a).
+Checkout the results of the example run above [here](https://api.wandb.ai/links/florians/1e6nz5os).
 
 ## Fine-tune on ESC-50 [13]
 
