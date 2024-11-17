@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Any, Callable, List, Optional, Sequence, Tuple
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 from torch import nn, Tensor
 import torch.nn.functional as F
 from torchvision.ops.misc import ConvNormActivation
@@ -154,12 +154,24 @@ class DyMN(nn.Module):
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)
 
-    def _feature_forward(self, x: Tensor) -> (Tensor, Tensor):
+    def _feature_forward(
+        self, x: Tensor, return_fmaps: bool = False
+    ) -> Union[Tensor, Tuple[Tensor, List[Tensor]]]:
+        fmaps = []
         x = self.in_c(x)
+        if return_fmaps:
+            fmaps.append(x)
+
         g = None
         for layer in self.layers:
             x = layer(x)
+            if return_fmaps:
+                fmaps.append(x)
+
         x = self.out_c(x)
+        if return_fmaps:
+            fmaps.append(x)
+            return x, fmaps
         return x
 
     def _clf_forward(self, x: Tensor):
@@ -170,13 +182,23 @@ class DyMN(nn.Module):
             x = x.unsqueeze(0)
         return x, embed
 
-    def _forward_impl(self, x: Tensor) -> (Tensor, Tensor):
-        x = self._feature_forward(x)
-        x, embed = self._clf_forward(x)
-        return x, embed
+    def _forward_impl(
+        self, x: Tensor, return_fmaps: bool = False
+    ) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, List[Tensor]]]:
+        if return_fmaps:
+            x, fmaps = self._feature_forward(x, return_fmaps=True)
+            x, _ = self._clf_forward(x)
+            return x, fmaps
+        else:
+            x = self._feature_forward(x)
+            x, embed = self._clf_forward(x)
+            return x, embed
 
-    def forward(self, x: Tensor) -> (Tensor, Tensor):
-        return self._forward_impl(x)
+    def forward(
+        self, x: Tensor, return_fmaps: bool = False
+    ) -> Union[Tuple[Tensor, Tensor], Tuple[Tensor, List[Tensor]]]:
+        return self._forward_impl(x, return_fmaps)
+
 
     def update_params(self, epoch):
         for module in self.modules():
