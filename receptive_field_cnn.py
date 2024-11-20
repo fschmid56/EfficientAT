@@ -17,8 +17,8 @@ def calc_receptive_field(args):
     model = get_model(width_mult=width, se_dims=args.se_dims, head_type=args.head_type, strides=args.strides)
     model.eval()
 
-    r = receptive_field_cnn(model, (1, 1, 128, 1000))
-    print(f"Receptive field size of {model_name} with strides {args.strides}: ", r)
+    rf_freq, rf_time = receptive_field_cnn(model, (1, 1, 128, 1000))
+    print(f"Receptive field size of {model_name} with strides {args.strides}: Frequency: {rf_freq}, Time: {rf_time}")
 
 
 if __name__ == '__main__':
